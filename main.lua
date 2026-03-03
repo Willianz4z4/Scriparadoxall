@@ -1,73 +1,116 @@
--- [[ INVADE HUB | DRIVING EMPIRE 0.1v ]]
--- Arquivo Principal: main.lua
+-- [[ INVADE HUB | LOADER / GATEKEEPER ]]
+-- Arquivo: main.lua
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- Criando a Janela Principal
+-- Tela de Login Customizada para suportar Keys Híbridas (Plato + Discord)
 local Window = Rayfield:CreateWindow({
-   Name = "INVADE HUB | DRIVING EMPIRE",
-   LoadingTitle = "SYSTEM INFILTRATED",
-   LoadingSubtitle = "by Willianz4z4",
+   Name = "INVADE HUB | AUTHENTICATION",
+   LoadingTitle = "Infiltrating Security...",
+   LoadingSubtitle = "by Battle Bloxy",
    ConfigurationSaving = {
       Enabled = true,
       FolderName = "InvadeHub",
-      FileName = "DrivingEmpire_Config"
+      FileName = "KeySystem"
    },
-   KeySystem = false, -- Já validamos no Loader, aqui deixamos false
+   Discord = {
+      Enabled = true,
+      Invite = "V2W6yatSRk", -- Seu Discord
+      RememberJoins = true 
+   },
+   KeySystem = false -- Desativamos o nativo para usar nossa validação Híbrida Abaixo
 })
 
--- ABA DE AUTOMATIZAÇÃO (FARM)
-local FarmTab = Window:CreateTab("Automations", 4483362458) -- Ícone de engrenagem
+local LoginTab = Window:CreateTab("Security Protocol", 4483362458)
+local KeyInput = ""
 
-local AutoFarmToggle = FarmTab:CreateToggle({
-   Name = "Auto-Farm Money (Miles)",
-   CurrentValue = false,
-   Flag = "AutoFarm", 
-   Callback = function(Value)
-      _G.AutoFarm = Value
-      if Value then
-         print("[SYSTEM]: Auto-farm Activated")
-         -- A lógica de farm entra aqui (ex: loop de velocidade ou teleporte)
-      else
-         print("[SYSTEM]: Auto-farm Deactivated")
+LoginTab:CreateParagraph({
+    Title = "Identity Required", 
+    Content = "Free Key: Get on LootLabs / PlatoBoost\nPremium Key: Buy on Discord (No Ads + Auto Police)"
+})
+
+LoginTab:CreateInput({
+   Name = "Enter your Secret Key:",
+   PlaceholderText = "Paste your Free or Premium Key here...",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      KeyInput = Text
+   end,
+})
+
+LoginTab:CreateButton({
+   Name = "INFILTRATE (Check Key)",
+   Callback = function()
+       
+      -- ==========================================
+      -- 1. TESTE PREMIUM (VIP)
+      -- ==========================================
+      -- Simulando: Qualquer key que comece com "PREM-" passa como Elite
+      if string.find(KeyInput, "PREM-") then
+          Rayfield:Notify({
+              Title = "ACCESS GRANTED: ELITE",
+              Content = "Welcome back. Injecting Premium Modules...",
+              Duration = 3,
+              Image = 4483362458
+          })
+          
+          _G.InvadeUserTier = "Premium" -- Envia a info pro driving.lua
+          task.wait(2)
+          Rayfield:Destroy() -- Apaga a tela de login
+          
+          -- [!] PUXA O CÓDIGO GIGANTE DIRETO DO SEU GITHUB
+          loadstring(game:HttpGet("https://raw.githubusercontent.com/Willianz4z4/Scriparadoxall/main/driving.lua"))()
+          return
       end
+
+      -- ==========================================
+      -- 2. TESTE FREE (PLATO BOOST / LOOTLABS)
+      -- ==========================================
+      -- Simulando: Qualquer key maior que 8 caracteres passa como Free
+      if string.len(KeyInput) > 8 then
+          Rayfield:Notify({
+              Title = "ACCESS GRANTED: STANDARD",
+              Content = "Free Access confirmed. Injecting Modules...",
+              Duration = 3,
+              Image = 4483362458
+          })
+          
+          _G.InvadeUserTier = "Free" -- Envia a info pro driving.lua
+          task.wait(2)
+          Rayfield:Destroy() -- Apaga a tela de login
+          
+          -- [!] PUXA O CÓDIGO GIGANTE DIRETO DO SEU GITHUB
+          loadstring(game:HttpGet("https://raw.githubusercontent.com/Willianz4z4/Scriparadoxall/main/driving.lua"))()
+          return
+      end
+
+      -- ==========================================
+      -- 3. CHAVE INVÁLIDA (FALHA)
+      -- ==========================================
+      Rayfield:Notify({
+          Title = "ACCESS DENIED",
+          Content = "Invalid Key. Intruder detected.",
+          Duration = 4,
+          Image = 4483362458
+      })
    end,
 })
 
--- ABA DE VEÍCULO (FUNÇÕES DE PERFORMANCE)
-local VehicleTab = Window:CreateTab("Vehicle Mods", 4483362458) 
+-- Botões de atalho para facilitar a vida do usuário
+local LinkTab = Window:CreateTab("Get Key", 4483362458)
 
-local NitroToggle = VehicleTab:CreateToggle({
-   Name = "Infinite Nitro (Bypass)",
-   CurrentValue = false,
-   Flag = "InfNitro",
-   Callback = function(Value)
-      print("[SYSTEM]: Nitro Modification: " .. tostring(Value))
-      -- Lógica para travar o valor do Nitro em 100%
+LinkTab:CreateButton({
+   Name = "Copy Free Key Link (LootLabs)",
+   Callback = function()
+      setclipboard("https://lootdest.org/s?0v6Fei9P") -- O seu link original
+      Rayfield:Notify({Title = "Copied!", Content = "Link copied to clipboard.", Duration = 2})
    end,
 })
 
-local SpeedSlider = VehicleTab:CreateSlider({
-   Name = "Speed Multiplier",
-   Range = {1, 500},
-   Increment = 10,
-   Suffix = " MPH",
-   CurrentValue = 100,
-   Flag = "SpeedMod",
-   Callback = function(Value)
-      -- Lógica para alterar a velocidade do carro
+LinkTab:CreateButton({
+   Name = "Copy Discord Link (Buy Premium)",
+   Callback = function()
+      setclipboard("https://discord.gg/V2W6yatSRk")
+      Rayfield:Notify({Title = "Copied!", Content = "Discord link copied to clipboard.", Duration = 2})
    end,
-})
-
--- ABA DE CRÉDITOS / STATUS
-local StatusTab = Window:CreateTab("System Info", 4483362458)
-
-StatusTab:CreateParagraph({Title = "Developer", Content = "Willianz4z4 / Battle Bloxy"})
-StatusTab:CreateParagraph({Title = "Version", Content = "0.1v Public Alpha"})
-
-Rayfield:Notify({
-    Title = "SYSTEM READY",
-    Content = "All modules injected successfully. Happy hacking!",
-    Duration = 5,
-    Image = 4483362458,
 })
