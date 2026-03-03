@@ -1,5 +1,5 @@
 -- ==========================================================
--- SISTEMA DE KEY - PANDA AUTH (CORREÇÃO DE 404 E URL ENCODE)
+-- SISTEMA DE KEY - PANDA AUTH (CORRIGIDO)
 -- ==========================================================
 
 local HttpService = game:GetService("HttpService")
@@ -20,7 +20,8 @@ end
 -- Limpa/Codifica o HWID para não quebrar o link no navegador
 local HWID = HttpService:UrlEncode(rawHWID)
 
-local GetKeyURL = "https://new.pandadevelopment.net/getkey/" .. ServiceID .. "?hwid=" .. HWID
+-- URL atualizada do Panda Auth
+local GetKeyURL = "https://pandadevelopment.net/getkey?service=" .. ServiceID .. "&hwid=" .. HWID
 
 -- ==========================================================
 -- FUNÇÃO DO SEU SCRIPT PRINCIPAL
@@ -29,14 +30,14 @@ local function StartMainScript()
     print("✅ Key validada! Iniciando sistemas de automação...")
 
     -- ==========================================================
-    -- COLOQUE O SEU SCRIPT DO DRIVING EMPIRE AQUI DENTRO
+    -- ATENÇÃO: Se o link abaixo estiver quebrado/deletado, vai dar erro 404!
+    -- Verifique se a URL do seu script realmente funciona no navegador.
     -- ==========================================================
-    -- Exemplo: loadstring(game:HttpGet("SEU_LINK_AQUI"))()
-
+    -- loadstring(game:HttpGet("SEU_LINK_AQUI"))()
 end
 
 -- ==========================================================
--- VALIDAÇÃO NA API OFICIAL (SEM ERRO 404)
+-- VALIDAÇÃO NA API OFICIAL
 -- ==========================================================
 local function ValidateKey(key)
     if not key or key == "" then return false, "Digite uma key!" end
@@ -44,31 +45,37 @@ local function ValidateKey(key)
     key = string.gsub(key, "^%s*(.-)%s*$", "%1") -- Remove espaços
     local encodedKey = HttpService:UrlEncode(key)
 
-    local validationURL = "https://api.pandadevelopment.net/v4/keys/validate?service_id=" .. ServiceID .. "&key=" .. encodedKey .. "&hwid=" .. HWID
+    -- URL de validação padrão e mais estável do Panda
+    local validationURL = "https://pandadevelopment.net/api/v1/validation?hwid=" .. HWID .. "&service=" .. ServiceID .. "&key=" .. encodedKey
 
     local success, response = pcall(function()
         return game:HttpGet(validationURL)
     end)
 
     if success and response then
+        -- Evita que o erro 404 crashe o script silenciosamente
+        if string.find(response, "404") then
+            return false, "Erro 404: API do Panda offline ou link incorreto."
+        end
+
         local decodeSuccess, data = pcall(function()
             return HttpService:JSONDecode(response)
         end)
         
         if decodeSuccess and data then
-            if data.success == true then
+            if data.success == true or data.success == "true" then
                 return true, "Sucesso!"
             else
                 return false, tostring(data.message or "Key inválida ou HWID incorreto")
             end
         else
-            if string.find(response, '"success":true') or string.find(response, "success") then
+            if string.find(string.lower(response), '"success":true') or string.find(string.lower(response), "success") then
                 return true, "Sucesso!"
             end
             return false, "Key não aprovada pelo servidor"
         end
     else
-        return false, "Erro de Conexão com o Panda Auth"
+        return false, "Erro de Conexão com a Internet/API"
     end
 end
 
@@ -80,7 +87,10 @@ if isfile and isfile(KeyFileName) then
     local isValid, _ = ValidateKey(savedKey)
     if isValid then
         StartMainScript()
-        return
+        -- O return foi removido daqui para garantir que, caso o auto-login falhe, a UI ainda carregue se algo der errado na thread.
+    else
+        -- Se a key salva não for mais válida, deleta o arquivo
+        if delfile then delfile(KeyFileName) end
     end
 end
 
