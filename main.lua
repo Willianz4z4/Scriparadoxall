@@ -1,5 +1,5 @@
 -- ==========================================================
--- SISTEMA DE KEY - PANDA AUTH (CORRIGIDO: ANTI-SPAM)
+-- SISTEMA DE KEY - PANDA AUTH (CORRIGIDO: PLAYERGUI + ANTI-SPAM)
 -- ==========================================================
 
 local ServiceID = "f01e5e9a-4624-483c-9bee-1fa29ae0e67e"
@@ -18,13 +18,13 @@ local GetKeyURL = "https://new.pandadevelopment.net/getkey/drivingempireparadoxa
 -- Função de Validação na API oficial
 local function ValidateKey(key)
     if not key or key == "" then return false end
-    
+
     local validationURL = "https://api.pandadevelopment.net/v4/keys/validate?service_id=" .. ServiceID .. "&key=" .. key .. "&hwid=" .. HWID
-    
+
     local success, response = pcall(function()
         return game:HttpGet(validationURL)
     end)
-    
+
     if success and response then
         if string.find(response, '"success":true') or string.find(response, "success") then
             return true
@@ -38,12 +38,12 @@ end
 -- ==========================================================
 local function StartMainScript()
     print("✅ Key validada! Iniciando sistemas de automação do carro...")
-    
+
     -- ==========================================================
     -- COLOQUE O SEU SCRIPT DO DRIVING EMPIRE AQUI DENTRO
     -- ==========================================================
     -- Exemplo: loadstring(game:HttpGet("SEU_LINK_AQUI"))()
-    
+
 end
 
 -- ==========================================================
@@ -52,16 +52,18 @@ end
 if isfile and isfile(KeyFileName) then
     local savedKey = readfile(KeyFileName)
     if ValidateKey(savedKey) then
+        print("🔑 Auto-login ativado! Key válida já estava salva no aparelho. (Interface Ocultada)")
         StartMainScript()
         return -- Se a key já for válida, para o código aqui e nem cria a interface!
     end
 end
 
 -- ==========================================================
--- INTERFACE GRÁFICA (UI)
+-- INTERFACE GRÁFICA (UI) - CORRIGIDO PARA PLAYERGUI
 -- ==========================================================
 
-local CoreGui = game:GetService("CoreGui")
+-- AQUI ESTÁ A CORREÇÃO: Usando PlayerGui em vez de CoreGui
+local CoreGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
 -- DESTRÓI A TELA ANTIGA: Previne que a interface abra duplicada se você injetar o script várias vezes
 if CoreGui:FindFirstChild("ParadoxKeySystem") then
@@ -70,6 +72,7 @@ end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ParadoxKeySystem"
+ScreenGui.ResetOnSpawn = false -- Impede que a UI suma se o personagem morrer
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
@@ -139,13 +142,12 @@ VerifyCorner.Parent = VerifyBtn
 -- LÓGICA COM DEBOUNCE (ANTI-SPAM DE CLIQUES)
 -- ==========================================================
 
-local isProcessing = false -- Variável que bloqueia os botões enquanto estão trabalhando
+local isProcessing = false 
 
--- Botão de Pegar Key
 GetKeyBtn.MouseButton1Click:Connect(function()
-    if isProcessing then return end -- Se já estiver processando, ignora o clique
+    if isProcessing then return end 
     isProcessing = true
-    
+
     if setclipboard then
         setclipboard(GetKeyURL)
         GetKeyBtn.Text = "Link Copiado!"
@@ -156,28 +158,25 @@ GetKeyBtn.MouseButton1Click:Connect(function()
         task.wait(2)
         GetKeyBtn.Text = "Pegar Key"
     end
-    
-    isProcessing = false -- Libera o botão novamente
+
+    isProcessing = false 
 end)
 
--- Botão de Verificar Key
 VerifyBtn.MouseButton1Click:Connect(function()
-    if isProcessing then return end -- Se já estiver processando, ignora o clique
+    if isProcessing then return end 
     isProcessing = true
-    
+
     VerifyBtn.Text = "Verificando..."
     local inputKey = KeyInput.Text
-    
+
     if ValidateKey(inputKey) then
-        -- Salva a key para a próxima vez
         if writefile then
             writefile(KeyFileName, inputKey)
         end
         VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
         VerifyBtn.Text = "Sucesso!"
         task.wait(1)
-        
-        -- Destrói a interface gráfica e inicia o seu script principal
+
         if ScreenGui then ScreenGui:Destroy() end
         StartMainScript()
     else
@@ -186,6 +185,6 @@ VerifyBtn.MouseButton1Click:Connect(function()
         task.wait(2)
         VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
         VerifyBtn.Text = "Verificar"
-        isProcessing = false -- Libera o botão apenas se a key falhar, para tentar de novo
+        isProcessing = false 
     end
 end)
