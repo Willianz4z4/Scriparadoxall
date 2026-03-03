@@ -1,14 +1,17 @@
 -- ==========================================================
--- SISTEMA DE KEY - PANDA AUTH (V4 - COM PAINEL DE DEBUG NA TELA)
+-- SISTEMA DE KEY - PANDA AUTH (CORREÇÃO DE HTTP 404 E UUID)
 -- ==========================================================
 
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 
-local ServiceID = "drivingempireparadoxall" 
+-- AS DUAS VARIÁVEIS SEPARADAS PARA EVITAR O ERRO 404
+local ServiceUUID = "f01e5e9a-4624-483c-9bee-1fa29ae0e67e" -- Usado apenas na API
+local ServiceURLName = "drivingempireparadoxall" -- Usado apenas para o link do usuário
+
 local KeyFileName = "Paradox_DrivingEmpire_Key.txt"
 
--- Captura o HWID de forma segura (Otimizado para Delta/Mobile)
+-- Captura o HWID de forma segura
 local HWID = ""
 if gethwid then
     HWID = gethwid()
@@ -16,13 +19,14 @@ else
     HWID = game:GetService("RbxAnalyticsService"):GetClientId()
 end
 
-local GetKeyURL = "https://new.pandadevelopment.net/getkey/" .. ServiceID .. "?hwid=" .. HWID
+-- Link gerado corretamente para o usuário
+local GetKeyURL = "https://new.pandadevelopment.net/getkey/" .. ServiceURLName .. "?hwid=" .. HWID
 
 -- ==========================================================
 -- FUNÇÃO DO SEU SCRIPT PRINCIPAL
 -- ==========================================================
 local function StartMainScript()
-    print("✅ Key validada! Iniciando sistemas...")
+    print("✅ Key validada! Iniciando sistemas de automação do carro...")
 
     -- ==========================================================
     -- COLOQUE O SEU SCRIPT DO DRIVING EMPIRE AQUI DENTRO
@@ -32,19 +36,22 @@ local function StartMainScript()
 end
 
 -- ==========================================================
--- VALIDAÇÃO NA API OFICIAL (Retorna Status Detalhado)
+-- VALIDAÇÃO NA API OFICIAL PANDA AUTH
 -- ==========================================================
 local function ValidateKey(key)
     if not key or key == "" then return false, "Digite uma key!" end
     
-    key = string.gsub(key, "^%s*(.-)%s*$", "%1") -- Remove espaços
-    local validationURL = "https://api.pandadevelopment.net/v4/keys/validate?service_id=" .. ServiceID .. "&key=" .. key .. "&hwid=" .. HWID
+    key = string.gsub(key, "^%s*(.-)%s*$", "%1") -- Remove espaços ocultos
+
+    -- AQUI ESTÁ A CORREÇÃO: Usando o ServiceUUID na API
+    local validationURL = "https://api.pandadevelopment.net/v4/keys/validate?service_id=" .. ServiceUUID .. "&key=" .. key .. "&hwid=" .. HWID
 
     local success, response = pcall(function()
         return game:HttpGet(validationURL)
     end)
 
     if success and response then
+        -- Se o HttpGet não falhou, vamos checar a resposta
         local decodeSuccess, data = pcall(function()
             return HttpService:JSONDecode(response)
         end)
@@ -53,18 +60,18 @@ local function ValidateKey(key)
             if data.success == true then
                 return true, "Sucesso!"
             else
-                -- Retorna o motivo exato que a API recusou a key
                 return false, tostring(data.message or "Erro desconhecido na API")
             end
         else
             if string.find(response, '"success":true') or string.find(response, "success") then
                 return true, "Sucesso!"
             end
-            return false, "Erro ao ler resposta do Panda Auth"
+            return false, "Erro ao ler resposta da API"
         end
+    else
+        -- Se o Delta der erro 404 ou 400, ele cai aqui
+        return false, "Erro de Conexão: " .. tostring(response)
     end
-    
-    return false, "Falha de conexão com a API"
 end
 
 -- ==========================================================
@@ -94,7 +101,7 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 350, 0, 230) -- Aumentei um pouco para caber o texto de status
+MainFrame.Size = UDim2.new(0, 350, 0, 230)
 MainFrame.Position = UDim2.new(0.5, -175, 0.5, -115)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
@@ -144,7 +151,6 @@ local InputCorner = Instance.new("UICorner")
 InputCorner.CornerRadius = UDim.new(0, 6)
 InputCorner.Parent = KeyInput
 
--- AQUI ESTÁ A NOVIDADE: Texto de Status na tela
 local StatusText = Instance.new("TextLabel")
 StatusText.Size = UDim2.new(1, 0, 0, 20)
 StatusText.Position = UDim2.new(0, 0, 0, 110)
@@ -266,7 +272,6 @@ VerifyBtn.MouseButton1Click:Connect(function()
         VerifyBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
         VerifyBtn.Text = "Erro!"
         
-        -- MOSTRA O ERRO EXATO NA TELA
         StatusText.Text = "Erro: " .. tostring(message)
         StatusText.TextColor3 = Color3.fromRGB(255, 80, 80)
         
