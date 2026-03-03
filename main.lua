@@ -1,10 +1,12 @@
 -- ==========================================================
--- SISTEMA DE KEY - PANDA AUTH (DRAGGABLE, CLOSABLE E API FIX)
+-- SISTEMA DE KEY - PANDA AUTH (CORREÇÃO DE SERVICE ID E DEBUG)
 -- ==========================================================
 
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
-local ServiceID = "f01e5e9a-4624-483c-9bee-1fa29ae0e67e"
+
+-- AQUI ESTAVA O ERRO! O Service ID correto é o nome público do seu link
+local ServiceID = "drivingempireparadoxall" 
 local KeyFileName = "Paradox_DrivingEmpire_Key.txt"
 
 -- Captura o HWID de forma segura
@@ -15,7 +17,7 @@ else
     HWID = game:GetService("RbxAnalyticsService"):GetClientId()
 end
 
-local GetKeyURL = "https://new.pandadevelopment.net/getkey/drivingempireparadoxall?hwid=" .. HWID
+local GetKeyURL = "https://new.pandadevelopment.net/getkey/" .. ServiceID .. "?hwid=" .. HWID
 
 -- ==========================================================
 -- FUNÇÃO DO SEU SCRIPT PRINCIPAL
@@ -31,14 +33,15 @@ local function StartMainScript()
 end
 
 -- ==========================================================
--- VALIDAÇÃO NA API OFICIAL (CORRIGIDO COM JSON DECODE)
+-- VALIDAÇÃO NA API OFICIAL
 -- ==========================================================
 local function ValidateKey(key)
     if not key or key == "" then return false end
     
-    -- Remove espaços em branco antes e depois da key caso o usuário copie errado
+    -- Remove espaços em branco antes e depois da key
     key = string.gsub(key, "^%s*(.-)%s*$", "%1")
 
+    -- URL de validação usando o nome público do serviço
     local validationURL = "https://api.pandadevelopment.net/v4/keys/validate?service_id=" .. ServiceID .. "&key=" .. key .. "&hwid=" .. HWID
 
     local success, response = pcall(function()
@@ -46,23 +49,28 @@ local function ValidateKey(key)
     end)
 
     if success and response then
-        -- Tenta decodificar o JSON recebido da API para ter 100% de certeza
         local decodeSuccess, data = pcall(function()
             return HttpService:JSONDecode(response)
         end)
         
         if decodeSuccess and data then
-            -- A API do Panda Auth V4 retorna um objeto JSON com "success": true ou false
             if data.success == true then
                 return true
+            else
+                -- DEBUG: Mostra no console exatamente por que a API negou a key
+                warn("❌ Motivo da Key Inválida (Panda Auth):", data.message or response)
             end
         else
-            -- Fallback de segurança caso o executor não suporte JSONDecode bem
             if string.find(response, '"success":true') or string.find(response, "success") then
                 return true
+            else
+                warn("❌ Erro na resposta da API:", response)
             end
         end
+    else
+        warn("❌ Falha ao conectar com o Panda Auth. Verifique sua internet ou se o executor suporta HttpGet.")
     end
+    
     return false
 end
 
@@ -72,9 +80,9 @@ end
 if isfile and isfile(KeyFileName) then
     local savedKey = readfile(KeyFileName)
     if ValidateKey(savedKey) then
-        print("🔑 Auto-login ativado! Key válida já estava salva no aparelho.")
+        print("🔑 Auto-login ativado! Key válida já estava salva.")
         StartMainScript()
-        return -- Interrompe a criação da interface
+        return
     end
 end
 
@@ -97,14 +105,13 @@ MainFrame.Size = UDim2.new(0, 350, 0, 200)
 MainFrame.Position = UDim2.new(0.5, -175, 0.5, -100)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
-MainFrame.Active = true -- Necessário para o drag
+MainFrame.Active = true 
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 10)
 UICorner.Parent = MainFrame
 
--- Título
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.BackgroundTransparency = 1
@@ -114,7 +121,6 @@ Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
 Title.Parent = MainFrame
 
--- Botão de Fechar (X)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(1, -35, 0, 5)
@@ -129,7 +135,6 @@ CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Caixa de texto da Key
 local KeyInput = Instance.new("TextBox")
 KeyInput.Size = UDim2.new(0, 300, 0, 40)
 KeyInput.Position = UDim2.new(0.5, -150, 0.4, -10)
@@ -146,7 +151,6 @@ local InputCorner = Instance.new("UICorner")
 InputCorner.CornerRadius = UDim.new(0, 6)
 InputCorner.Parent = KeyInput
 
--- Botões de ação
 local GetKeyBtn = Instance.new("TextButton")
 GetKeyBtn.Size = UDim2.new(0, 140, 0, 35)
 GetKeyBtn.Position = UDim2.new(0, 25, 0.7, 0)
@@ -176,12 +180,9 @@ VerifyCorner.CornerRadius = UDim.new(0, 6)
 VerifyCorner.Parent = VerifyBtn
 
 -- ==========================================================
--- SISTEMA DE DRAG (ARRASTAR INTERFACE)
+-- SISTEMA DE DRAG (ARRASTAR)
 -- ==========================================================
-local dragging
-local dragInput
-local dragStart
-local startPos
+local dragging, dragInput, dragStart, startPos
 
 local function update(input)
     local delta = input.Position - dragStart
@@ -215,7 +216,7 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 -- ==========================================================
--- LÓGICA DE BOTÕES COM DEBOUNCE
+-- LÓGICA DE BOTÕES
 -- ==========================================================
 local isProcessing = false 
 
