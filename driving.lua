@@ -12,7 +12,6 @@ local lp = Players.LocalPlayer
 -- ==========================================
 -- USER TIER SYSTEM (DYNAMIC LOADER)
 -- ==========================================
--- Agora ele pega o nível de acesso direto do seu Loader principal!
 local UserRole = _G.InvadeUserTier or "Free" 
 
 -- ==========================================
@@ -43,13 +42,11 @@ end
 -- NOTIFICATION SYSTEM (FOR FREE USERS)
 -- ==========================================
 local function notifyPremium(button, originalText, originalColor)
-    -- Evita spam de cliques
     if button.Text == "INVALID! BUY ON DISCORD" then return end
 
     button.Text = "INVALID! BUY ON DISCORD"
     button.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
 
-    -- Shake animation
     local originalPos = button.Position
     local offset = 0.02
     for i = 1, 4 do
@@ -94,7 +91,6 @@ local function loadConfig()
         pcall(function()
             local data = HttpService:JSONDecode(readfile(configName))
             if data then
-                -- Only load premium settings if user has permission
                 if UserRole == "Premium" or UserRole == "Partner" then
                     _G.AutoPolice = data.AutoPolice or false
                     _G.AutoHop = data.AutoHop or false
@@ -112,6 +108,7 @@ loadConfig()
 -- SERVER HOP FUNCTION (ALMOST FULL SERVERS)
 -- ==========================================
 local function serverHop()
+    if UserRole == "Free" then return end
     pcall(function()
         local httprequest = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
         if httprequest then
@@ -262,7 +259,6 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -40, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
--- Update Title to include version and user role
 Title.Text = "DRIVING EMPIRE HUB 0.1v | " .. string.upper(UserRole)
 Title.TextColor3 = Color3.fromRGB(0, 255, 120) 
 Title.Font = Enum.Font.GothamBold
@@ -782,7 +778,7 @@ local function moveToTarget(finalDest)
 end
 
 -- ==========================================
--- AUTO POLICE LOGIC (STEALTH APPROACH & BACK MAGNET)
+-- AUTO POLICE LOGIC (ORBITING & MAGNET)
 -- ==========================================
 if _G.AutoPolice and (UserRole == "Premium" or UserRole == "Partner") then
     task.spawn(function()
@@ -855,10 +851,11 @@ task.spawn(function()
             end
 
             -- ========================================================
-            -- PHASE 2: PREDATOR LOCK LOOP
+            -- PHASE 2: ORBITING & PREDATOR LOCK LOOP
             -- ========================================================
             local lastPromptFire = 0
             local lockStartTime = tick() 
+            local orbitAngle = 0 -- Variável para controlar o ângulo de órbita
             noclipActive = true 
 
             if StatusPolice and _G.AutoPolice and targetCriminal and targetCriminal.Parent then 
@@ -880,12 +877,26 @@ task.spawn(function()
                 end)
                 if not stillHasBag then break end 
 
+                -- Lógica de Órbita: O policial vai girar em volta do criminoso
                 if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and lp.Character:FindFirstChild("Humanoid") then
-                    local targetCF = targetCriminal.Character.HumanoidRootPart.CFrame
-                    lp.Character.HumanoidRootPart.CFrame = targetCF * CFrame.new(0, 0, 4) 
+                    local targetPos = targetCriminal.Character.HumanoidRootPart.Position
+                    
+                    -- Calcula a nova posição em círculo (Raio de 6 studs)
+                    local radius = 6 
+                    local orbitSpeed = 4 -- Velocidade do giro
+                    
+                    local offsetX = math.cos(math.rad(orbitAngle)) * radius
+                    local offsetZ = math.sin(math.rad(orbitAngle)) * radius
+                    
+                    local newPosition = targetPos + Vector3.new(offsetX, 0, offsetZ)
+                    
+                    -- Atualiza a posição do HRP e faz o policial olhar pro criminoso
+                    lp.Character.HumanoidRootPart.CFrame = CFrame.new(newPosition, targetPos)
                     lp.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0) 
-
-                    lp.Character.Humanoid:MoveTo(targetCF.Position + targetCF.lookVector * 50)
+                    
+                    -- Incrementa o ângulo pra criar o movimento
+                    orbitAngle = orbitAngle + orbitSpeed 
+                    if orbitAngle >= 360 then orbitAngle = 0 end
                 end
 
                 local arrestPrompt = targetCriminal.Character:FindFirstChildWhichIsA("ProximityPrompt", true)
@@ -937,7 +948,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- AUTO ROB LOGIC (OUTLAW)
+-- AUTO ROB LOGIC (OUTLAW WITH 'E' KEYPRESS)
 -- ==========================================
 task.spawn(function()
     while task.wait(1) do
@@ -1013,16 +1024,25 @@ task.spawn(function()
                                 StatusRob.Text = "Status: Freezing and Robbing..."
                                 hrp.Anchored = true; if hum then hum.WalkSpeed = 0; hum.JumpPower = 0 end
                                 task.wait(1.8) 
-                                if fireproximityprompt then
-                                    fireproximityprompt(prompt, 1); task.wait(prompt.HoldDuration + 0.5)
-                                else
-                                    local originalView = prompt.RequiresLineOfSight; local originalDist = prompt.MaxActivationDistance
-                                    prompt.RequiresLineOfSight = false; prompt.MaxActivationDistance = 50 
-                                    VirtualInputManager:SendKeyEvent(true, prompt.KeyboardKeyCode, false, game)
-                                    task.wait(prompt.HoldDuration + 0.5)
-                                    VirtualInputManager:SendKeyEvent(false, prompt.KeyboardKeyCode, false, game)
-                                    prompt.RequiresLineOfSight = originalView; prompt.MaxActivationDistance = originalDist
+                                
+                                -- Tenta usar o VirtualInputManager para simular a tecla 'E'
+                                local success, err = pcall(function()
+                                    -- A tecla padrão de interação no Roblox é 'E' (Enum.KeyCode.E)
+                                    -- Pressiona a tecla
+                                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                                    task.wait(prompt.HoldDuration + 0.5) 
+                                    -- Solta a tecla
+                                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                                end)
+
+                                -- Fallback de segurança se o VIM falhar
+                                if not success then
+                                    if fireproximityprompt then
+                                        fireproximityprompt(prompt, 1)
+                                        task.wait(prompt.HoldDuration + 0.5)
+                                    end
                                 end
+
                                 if hum then hum.WalkSpeed = 16; hum.JumpPower = 50 end
                                 StatusRob.Text = "Status: Bag Acquired!"; task.wait(1.5)
                             end
