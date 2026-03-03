@@ -1,32 +1,32 @@
 -- ==========================================================
--- SISTEMA DE KEY - PANDA AUTH (CORREÇÃO DE HTTP 404 E UUID)
+-- SISTEMA DE KEY - PANDA AUTH (CORREÇÃO DE 404 E URL ENCODE)
 -- ==========================================================
 
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 
--- AS DUAS VARIÁVEIS SEPARADAS PARA EVITAR O ERRO 404
-local ServiceUUID = "f01e5e9a-4624-483c-9bee-1fa29ae0e67e" -- Usado apenas na API
-local ServiceURLName = "drivingempireparadoxall" -- Usado apenas para o link do usuário
-
+-- O ServiceID exato que a API do Panda precisa
+local ServiceID = "drivingempireparadoxall" 
 local KeyFileName = "Paradox_DrivingEmpire_Key.txt"
 
--- Captura o HWID de forma segura
-local HWID = ""
+-- Captura o HWID do celular/Delta
+local rawHWID = ""
 if gethwid then
-    HWID = gethwid()
+    rawHWID = gethwid()
 else
-    HWID = game:GetService("RbxAnalyticsService"):GetClientId()
+    rawHWID = game:GetService("RbxAnalyticsService"):GetClientId()
 end
 
--- Link gerado corretamente para o usuário
-local GetKeyURL = "https://new.pandadevelopment.net/getkey/" .. ServiceURLName .. "?hwid=" .. HWID
+-- Limpa/Codifica o HWID para não quebrar o link no navegador
+local HWID = HttpService:UrlEncode(rawHWID)
+
+local GetKeyURL = "https://new.pandadevelopment.net/getkey/" .. ServiceID .. "?hwid=" .. HWID
 
 -- ==========================================================
 -- FUNÇÃO DO SEU SCRIPT PRINCIPAL
 -- ==========================================================
 local function StartMainScript()
-    print("✅ Key validada! Iniciando sistemas de automação do carro...")
+    print("✅ Key validada! Iniciando sistemas de automação...")
 
     -- ==========================================================
     -- COLOQUE O SEU SCRIPT DO DRIVING EMPIRE AQUI DENTRO
@@ -36,22 +36,21 @@ local function StartMainScript()
 end
 
 -- ==========================================================
--- VALIDAÇÃO NA API OFICIAL PANDA AUTH
+-- VALIDAÇÃO NA API OFICIAL (SEM ERRO 404)
 -- ==========================================================
 local function ValidateKey(key)
     if not key or key == "" then return false, "Digite uma key!" end
     
-    key = string.gsub(key, "^%s*(.-)%s*$", "%1") -- Remove espaços ocultos
+    key = string.gsub(key, "^%s*(.-)%s*$", "%1") -- Remove espaços
+    local encodedKey = HttpService:UrlEncode(key)
 
-    -- AQUI ESTÁ A CORREÇÃO: Usando o ServiceUUID na API
-    local validationURL = "https://api.pandadevelopment.net/v4/keys/validate?service_id=" .. ServiceUUID .. "&key=" .. key .. "&hwid=" .. HWID
+    local validationURL = "https://api.pandadevelopment.net/v4/keys/validate?service_id=" .. ServiceID .. "&key=" .. encodedKey .. "&hwid=" .. HWID
 
     local success, response = pcall(function()
         return game:HttpGet(validationURL)
     end)
 
     if success and response then
-        -- Se o HttpGet não falhou, vamos checar a resposta
         local decodeSuccess, data = pcall(function()
             return HttpService:JSONDecode(response)
         end)
@@ -60,17 +59,16 @@ local function ValidateKey(key)
             if data.success == true then
                 return true, "Sucesso!"
             else
-                return false, tostring(data.message or "Erro desconhecido na API")
+                return false, tostring(data.message or "Key inválida ou HWID incorreto")
             end
         else
             if string.find(response, '"success":true') or string.find(response, "success") then
                 return true, "Sucesso!"
             end
-            return false, "Erro ao ler resposta da API"
+            return false, "Key não aprovada pelo servidor"
         end
     else
-        -- Se o Delta der erro 404 ou 400, ele cai aqui
-        return false, "Erro de Conexão: " .. tostring(response)
+        return false, "Erro de Conexão com o Panda Auth"
     end
 end
 
@@ -155,7 +153,7 @@ local StatusText = Instance.new("TextLabel")
 StatusText.Size = UDim2.new(1, 0, 0, 20)
 StatusText.Position = UDim2.new(0, 0, 0, 110)
 StatusText.BackgroundTransparency = 1
-StatusText.Text = "Aguardando Key..."
+StatusText.Text = "Pronto para validar."
 StatusText.TextColor3 = Color3.fromRGB(170, 170, 170)
 StatusText.Font = Enum.Font.Gotham
 StatusText.TextSize = 12
@@ -231,13 +229,13 @@ GetKeyBtn.MouseButton1Click:Connect(function()
     if setclipboard then
         setclipboard(GetKeyURL)
         GetKeyBtn.Text = "Link Copiado!"
-        StatusText.Text = "Link copiado para sua área de transferência!"
+        StatusText.Text = "Cole o link no seu navegador!"
         StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
         task.wait(2)
         GetKeyBtn.Text = "Pegar Key"
     else
         GetKeyBtn.Text = "Erro"
-        StatusText.Text = "Seu executor não suporta copiar link."
+        StatusText.Text = "Erro ao copiar. Seu executor não suporta setclipboard."
         task.wait(2)
         GetKeyBtn.Text = "Pegar Key"
     end
@@ -250,7 +248,7 @@ VerifyBtn.MouseButton1Click:Connect(function()
     isProcessing = true
 
     VerifyBtn.Text = "Carregando..."
-    StatusText.Text = "Consultando servidor..."
+    StatusText.Text = "Consultando servidor Panda Auth..."
     StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
     
     local inputKey = KeyInput.Text
