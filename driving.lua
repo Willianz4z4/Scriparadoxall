@@ -10,10 +10,10 @@ local TweenService = game:GetService("TweenService")
 local lp = Players.LocalPlayer
 
 -- ==========================================
--- USER TIER SYSTEM (Free / Partner / Premium)
+-- USER TIER SYSTEM (DYNAMIC LOADER)
 -- ==========================================
--- CHANGE THIS TO TEST DIFFERENT ACCESS LEVELS: "Free", "Partner", or "Premium"
-local UserRole = "Free" 
+-- Agora ele pega o nível de acesso direto do seu Loader principal!
+local UserRole = _G.InvadeUserTier or "Free" 
 
 -- ==========================================
 -- GLOBAL VARIABLES & CONTROL FLAGS
@@ -45,10 +45,10 @@ end
 local function notifyPremium(button, originalText, originalColor)
     -- Evita spam de cliques
     if button.Text == "INVALID! BUY ON DISCORD" then return end
-    
+
     button.Text = "INVALID! BUY ON DISCORD"
     button.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
-    
+
     -- Shake animation
     local originalPos = button.Position
     local offset = 0.02
@@ -58,7 +58,7 @@ local function notifyPremium(button, originalText, originalColor)
         offset = -offset
     end
     button.Position = originalPos
-    
+
     task.wait(2)
     button.Text = originalText
     button.BackgroundColor3 = originalColor
@@ -119,7 +119,7 @@ local function serverHop()
             local body = HttpService:JSONDecode(servers.Body)
             local available = {}
             local almostFull = {}
-            
+
             for _, v in pairs(body.data) do
                 if type(v) == "table" and v.playing > 0 and v.playing < v.maxPlayers and v.id ~= game.JobId then
                     table.insert(available, v.id)
@@ -128,7 +128,7 @@ local function serverHop()
                     end
                 end
             end
-            
+
             if #almostFull > 0 then
                 TeleportService:TeleportToPlaceInstance(game.PlaceId, almostFull[math.random(1, #almostFull)], lp)
             elseif #available > 0 then
@@ -159,26 +159,26 @@ local function setupClonedGUI()
         end
         if not originalMoneyContainer then task.wait(0.5) end
     end
-    
+
     if originalMoneyContainer then
         profitFrameClone = originalMoneyContainer:Clone()
         profitFrameClone.Name = "ScriptProfitClone"
-        
+
         local profitScreenGui = CoreGui:FindFirstChild("DE_ProfitUI")
         if not profitScreenGui then
             profitScreenGui = Instance.new("ScreenGui")
             profitScreenGui.Name = "DE_ProfitUI"
             profitScreenGui.Parent = CoreGui
         end
-        
+
         profitFrameClone.Parent = profitScreenGui
         profitFrameClone.Visible = true
         profitFrameClone.AnchorPoint = Vector2.new(0, 0)
-        
+
         for _, obj in pairs(profitFrameClone:GetDescendants()) do
             if obj:IsA("LocalScript") then obj:Destroy() end
         end
-        
+
         local holder = profitFrameClone:FindFirstChild("Holder")
         if holder then
             local moneyLabel = holder:FindFirstChild("Money")
@@ -187,12 +187,12 @@ local function setupClonedGUI()
                 moneyLabel.TextColor3 = Color3.fromRGB(0, 255, 120) 
                 profitTextLabel = moneyLabel
             end
-            
+
             local signLabel = holder:FindFirstChild("$")
             if signLabel and signLabel:IsA("TextLabel") then
                 signLabel.TextColor3 = Color3.fromRGB(0, 255, 120)
             end
-            
+
             local plusBtn = holder:FindFirstChild("Plus")
             if plusBtn then plusBtn:Destroy() end
         end
@@ -559,13 +559,13 @@ end)
 local function switchTab(tabName)
     local tabs = {Rewards = TabRewardsBtn, Rob = TabRobBtn, Police = TabPoliceBtn, Config = TabConfigBtn}
     local pages = {Rewards = RewardsPage, Rob = RobPage, Police = PolicePage, Config = ConfigPage}
-    
+
     for _, btn in pairs(tabs) do
         btn.BackgroundColor3 = Color3.fromRGB(18, 19, 23)
         btn.TextColor3 = Color3.fromRGB(180, 180, 180)
     end
     for _, page in pairs(pages) do page.Visible = false end
-    
+
     if tabs[tabName] then
         tabs[tabName].BackgroundColor3 = Color3.fromRGB(40, 45, 55)
         tabs[tabName].TextColor3 = Color3.fromRGB(0, 255, 120)
@@ -599,7 +599,7 @@ RunRewardsBtn.MouseButton1Click:Connect(function()
     rewardLoopActive = true
     RunRewardsBtn.Text = "RUNNING CYCLES (EVERY 5 MIN)..."
     RunRewardsBtn.BackgroundColor3 = Color3.fromRGB(80, 85, 95) 
-    
+
     task.spawn(function()
         if StatusRewards then StatusRewards.Text = "Status: Initial Collection Complete (1 to 12)..." end
         for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
@@ -611,16 +611,16 @@ RunRewardsBtn.MouseButton1Click:Connect(function()
                 break
             end
         end
-        
+
         for cycle = 1, 7 do
             if not rewardLoopActive then break end
-            
+
             if StatusRewards then StatusRewards.Text = "Status: Waiting 5 minutes (Cycle " .. cycle .. "/7)..." end
             task.wait(300) 
-            
+
             if not rewardLoopActive then break end
             if StatusRewards then StatusRewards.Text = "Status: Attempting to claim chests (1 to 7)..." end
-            
+
             for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
                 if obj.Name == "PlayRewards" and obj:IsA("RemoteEvent") then
                     for i = 1, 7 do
@@ -631,7 +631,7 @@ RunRewardsBtn.MouseButton1Click:Connect(function()
                 end
             end
         end
-        
+
         rewardLoopActive = false
         if StatusRewards then StatusRewards.Text = "Status: All 7 cycles completed! Finished." end
         RunRewardsBtn.Text = "START REWARD CYCLE"
@@ -681,25 +681,25 @@ TogglePoliceBtn.MouseButton1Click:Connect(function()
 
     _G.AutoPolice = not _G.AutoPolice
     saveConfig() 
-    
+
     if _G.AutoPolice then
         _G.AutoRob = false 
         if ToggleRobBtn.Text == "START AUTO ROB [ON]" then 
             ToggleRobBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
             ToggleRobBtn.Text = "START AUTO ROB [OFF]" 
         end
-        
+
         TogglePoliceBtn.Text = "HUNT CRIMINALS [ON]"
         TogglePoliceBtn.BackgroundColor3 = Color3.fromRGB(30, 180, 60)
         StatusPolice.Text = "Status: Starting Security job..."
-        
+
         pcall(function()
             local remoteJob = ReplicatedStorage:FindFirstChild("RequestStartJobSession", true)
             if remoteJob and remoteJob:IsA("RemoteEvent") then
                 remoteJob:FireServer("Security", "jobPad")
             end
         end)
-        
+
         task.wait(1)
         StatusPolice.Text = "Status: Scanning players' backpacks..."
     else
@@ -720,7 +720,7 @@ ToggleHopBtn.MouseButton1Click:Connect(function()
 
     _G.AutoHop = not _G.AutoHop
     saveConfig() 
-    
+
     if _G.AutoHop then
         ToggleHopBtn.Text = "🔄 AUTO SERVER HOP [ON]"
         ToggleHopBtn.BackgroundColor3 = Color3.fromRGB(30, 180, 60)
@@ -740,7 +740,7 @@ RunService.RenderStepped:Connect(function()
             cam.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 20, 0), hrp.Position)
         end
     end
-    
+
     if originalMoneyContainer and profitFrameClone then
         local absPos = originalMoneyContainer.AbsolutePosition
         local absSize = originalMoneyContainer.AbsoluteSize
@@ -801,28 +801,28 @@ task.spawn(function()
             task.wait(1) 
             continue 
         end
-        
+
         local targetCriminal = nil
-        
+
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 local hasBagInBackpack = p.Backpack and p.Backpack:FindFirstChild("CriminalMoneyBag")
                 local hasBagInHand = p.Character and p.Character:FindFirstChild("CriminalMoneyBag")
-                
+
                 if hasBagInBackpack or hasBagInHand then
                     targetCriminal = p
                     break 
                 end
             end
         end
-        
+
         if targetCriminal and targetCriminal.Character and targetCriminal.Character:FindFirstChild("HumanoidRootPart") then
             if StatusPolice then StatusPolice.Text = "Status: Approaching target from afar (80m)..." end
-            
+
             if targetCriminal.Character:FindFirstChild("Humanoid") then
                 workspace.CurrentCamera.CameraSubject = targetCriminal.Character.Humanoid
             end
-            
+
             -- ========================================================
             -- PHASE 1: STEALTH APPROACH
             -- ========================================================
@@ -830,48 +830,48 @@ task.spawn(function()
             if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and lp.Character:FindFirstChild("Humanoid") then
                 local hrp = lp.Character.HumanoidRootPart
                 local hum = lp.Character.Humanoid
-                
+
                 hrp.Anchored = false
                 hum.WalkSpeed = _G.FarmSpeed
-                
+
                 local targetCF = targetCriminal.Character.HumanoidRootPart.CFrame
                 local farCF = targetCF * CFrame.new(0, 0, 80)
-                
+
                 hrp.CFrame = CFrame.new(farCF.X, targetCF.Position.Y + 5, farCF.Z)
                 task.wait(0.3) 
-                
+
                 local startRunTime = tick()
                 while tick() - startRunTime < 4.5 and _G.AutoPolice and targetCriminal and targetCriminal.Parent do
                     if not (targetCriminal.Backpack:FindFirstChild("CriminalMoneyBag") or targetCriminal.Character:FindFirstChild("CriminalMoneyBag")) then break end
-                    
+
                     if targetCriminal.Character and targetCriminal.Character:FindFirstChild("HumanoidRootPart") then
                         local dist = (hrp.Position - targetCriminal.Character.HumanoidRootPart.Position).Magnitude
                         if dist < 15 then break end 
-                        
+
                         hum:MoveTo(targetCriminal.Character.HumanoidRootPart.Position)
                     end
                     task.wait(0.1)
                 end
             end
-            
+
             -- ========================================================
             -- PHASE 2: PREDATOR LOCK LOOP
             -- ========================================================
             local lastPromptFire = 0
             local lockStartTime = tick() 
             noclipActive = true 
-            
+
             if StatusPolice and _G.AutoPolice and targetCriminal and targetCriminal.Parent then 
                 StatusPolice.Text = "Status: Locked on target: " .. targetCriminal.Name 
             end
-            
+
             while _G.AutoPolice and targetCriminal and targetCriminal.Character and targetCriminal.Character:FindFirstChild("HumanoidRootPart") do
-                
+
                 if tick() - lockStartTime > 20 then
                     if StatusPolice then StatusPolice.Text = "Status: Timeout (20s). Restarting approach..." end
                     break 
                 end
-                
+
                 local stillHasBag = false
                 pcall(function()
                     if targetCriminal.Backpack:FindFirstChild("CriminalMoneyBag") or targetCriminal.Character:FindFirstChild("CriminalMoneyBag") then
@@ -879,20 +879,20 @@ task.spawn(function()
                     end
                 end)
                 if not stillHasBag then break end 
-                
+
                 if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and lp.Character:FindFirstChild("Humanoid") then
                     local targetCF = targetCriminal.Character.HumanoidRootPart.CFrame
                     lp.Character.HumanoidRootPart.CFrame = targetCF * CFrame.new(0, 0, 4) 
                     lp.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0) 
-                    
+
                     lp.Character.Humanoid:MoveTo(targetCF.Position + targetCF.lookVector * 50)
                 end
-                
+
                 local arrestPrompt = targetCriminal.Character:FindFirstChildWhichIsA("ProximityPrompt", true)
-                
+
                 if arrestPrompt and (tick() - lastPromptFire > 0.5) then
                     lastPromptFire = tick()
-                    
+
                     local originalView = arrestPrompt.RequiresLineOfSight
                     local originalDist = arrestPrompt.MaxActivationDistance
                     arrestPrompt.RequiresLineOfSight = false
@@ -905,24 +905,24 @@ task.spawn(function()
                         task.wait(0.1)
                         VirtualInputManager:SendKeyEvent(false, arrestPrompt.KeyboardKeyCode, false, game)
                     end
-                    
+
                     arrestPrompt.RequiresLineOfSight = originalView
                     arrestPrompt.MaxActivationDistance = originalDist
                 end
-                
+
                 RunService.Heartbeat:Wait()
             end
-            
+
             if StatusPolice then StatusPolice.Text = "Status: Analyzing situation..." end
             task.wait(1)
-            
+
         else
             resetCamera()
             noclipActive = false
             if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then 
                 lp.Character.HumanoidRootPart.Anchored = false 
             end
-            
+
             if _G.AutoHop then
                 if StatusPolice then StatusPolice.Text = "Status: No bags found. Server Hopping..." end
                 task.wait(1)
@@ -956,7 +956,7 @@ task.spawn(function()
                     if zone and zone:IsA("BasePart") then dropOffPoint = zone; break end
                 end
             end
-            
+
             if dropOffPoint then
                 StatusRob.Text = "Status: Dropping off money at base..."
                 local posOutsideZone = dropOffPoint.Position + Vector3.new(5, 3, 0)
