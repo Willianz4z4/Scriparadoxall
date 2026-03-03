@@ -1,15 +1,14 @@
 -- ==========================================================
--- SISTEMA DE KEY - PANDA AUTH (CORREÇÃO DE SERVICE ID E DEBUG)
+-- SISTEMA DE KEY - PANDA AUTH (V4 - COM PAINEL DE DEBUG NA TELA)
 -- ==========================================================
 
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 
--- AQUI ESTAVA O ERRO! O Service ID correto é o nome público do seu link
 local ServiceID = "drivingempireparadoxall" 
 local KeyFileName = "Paradox_DrivingEmpire_Key.txt"
 
--- Captura o HWID de forma segura
+-- Captura o HWID de forma segura (Otimizado para Delta/Mobile)
 local HWID = ""
 if gethwid then
     HWID = gethwid()
@@ -23,7 +22,7 @@ local GetKeyURL = "https://new.pandadevelopment.net/getkey/" .. ServiceID .. "?h
 -- FUNÇÃO DO SEU SCRIPT PRINCIPAL
 -- ==========================================================
 local function StartMainScript()
-    print("✅ Key validada! Iniciando sistemas de automação do carro...")
+    print("✅ Key validada! Iniciando sistemas...")
 
     -- ==========================================================
     -- COLOQUE O SEU SCRIPT DO DRIVING EMPIRE AQUI DENTRO
@@ -33,15 +32,12 @@ local function StartMainScript()
 end
 
 -- ==========================================================
--- VALIDAÇÃO NA API OFICIAL
+-- VALIDAÇÃO NA API OFICIAL (Retorna Status Detalhado)
 -- ==========================================================
 local function ValidateKey(key)
-    if not key or key == "" then return false end
+    if not key or key == "" then return false, "Digite uma key!" end
     
-    -- Remove espaços em branco antes e depois da key
-    key = string.gsub(key, "^%s*(.-)%s*$", "%1")
-
-    -- URL de validação usando o nome público do serviço
+    key = string.gsub(key, "^%s*(.-)%s*$", "%1") -- Remove espaços
     local validationURL = "https://api.pandadevelopment.net/v4/keys/validate?service_id=" .. ServiceID .. "&key=" .. key .. "&hwid=" .. HWID
 
     local success, response = pcall(function()
@@ -55,23 +51,20 @@ local function ValidateKey(key)
         
         if decodeSuccess and data then
             if data.success == true then
-                return true
+                return true, "Sucesso!"
             else
-                -- DEBUG: Mostra no console exatamente por que a API negou a key
-                warn("❌ Motivo da Key Inválida (Panda Auth):", data.message or response)
+                -- Retorna o motivo exato que a API recusou a key
+                return false, tostring(data.message or "Erro desconhecido na API")
             end
         else
             if string.find(response, '"success":true') or string.find(response, "success") then
-                return true
-            else
-                warn("❌ Erro na resposta da API:", response)
+                return true, "Sucesso!"
             end
+            return false, "Erro ao ler resposta do Panda Auth"
         end
-    else
-        warn("❌ Falha ao conectar com o Panda Auth. Verifique sua internet ou se o executor suporta HttpGet.")
     end
     
-    return false
+    return false, "Falha de conexão com a API"
 end
 
 -- ==========================================================
@@ -79,8 +72,8 @@ end
 -- ==========================================================
 if isfile and isfile(KeyFileName) then
     local savedKey = readfile(KeyFileName)
-    if ValidateKey(savedKey) then
-        print("🔑 Auto-login ativado! Key válida já estava salva.")
+    local isValid, _ = ValidateKey(savedKey)
+    if isValid then
         StartMainScript()
         return
     end
@@ -101,8 +94,8 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 350, 0, 200)
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -100)
+MainFrame.Size = UDim2.new(0, 350, 0, 230) -- Aumentei um pouco para caber o texto de status
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -115)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true 
@@ -137,7 +130,7 @@ end)
 
 local KeyInput = Instance.new("TextBox")
 KeyInput.Size = UDim2.new(0, 300, 0, 40)
-KeyInput.Position = UDim2.new(0.5, -150, 0.4, -10)
+KeyInput.Position = UDim2.new(0.5, -150, 0, 60)
 KeyInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
 KeyInput.PlaceholderText = "Cole sua Key aqui..."
@@ -151,9 +144,20 @@ local InputCorner = Instance.new("UICorner")
 InputCorner.CornerRadius = UDim.new(0, 6)
 InputCorner.Parent = KeyInput
 
+-- AQUI ESTÁ A NOVIDADE: Texto de Status na tela
+local StatusText = Instance.new("TextLabel")
+StatusText.Size = UDim2.new(1, 0, 0, 20)
+StatusText.Position = UDim2.new(0, 0, 0, 110)
+StatusText.BackgroundTransparency = 1
+StatusText.Text = "Aguardando Key..."
+StatusText.TextColor3 = Color3.fromRGB(170, 170, 170)
+StatusText.Font = Enum.Font.Gotham
+StatusText.TextSize = 12
+StatusText.Parent = MainFrame
+
 local GetKeyBtn = Instance.new("TextButton")
 GetKeyBtn.Size = UDim2.new(0, 140, 0, 35)
-GetKeyBtn.Position = UDim2.new(0, 25, 0.7, 0)
+GetKeyBtn.Position = UDim2.new(0, 25, 0, 150)
 GetKeyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 GetKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 GetKeyBtn.Text = "Pegar Key"
@@ -167,7 +171,7 @@ GetKeyCorner.Parent = GetKeyBtn
 
 local VerifyBtn = Instance.new("TextButton")
 VerifyBtn.Size = UDim2.new(0, 140, 0, 35)
-VerifyBtn.Position = UDim2.new(0, 185, 0.7, 0)
+VerifyBtn.Position = UDim2.new(0, 185, 0, 150)
 VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 VerifyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 VerifyBtn.Text = "Verificar"
@@ -196,23 +200,17 @@ MainFrame.InputBegan:Connect(function(input)
         startPos = MainFrame.Position
         
         input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
         end)
     end
 end)
 
 MainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        update(input)
-    end
+    if input == dragInput and dragging then update(input) end
 end)
 
 -- ==========================================================
@@ -227,10 +225,13 @@ GetKeyBtn.MouseButton1Click:Connect(function()
     if setclipboard then
         setclipboard(GetKeyURL)
         GetKeyBtn.Text = "Link Copiado!"
+        StatusText.Text = "Link copiado para sua área de transferência!"
+        StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
         task.wait(2)
         GetKeyBtn.Text = "Pegar Key"
     else
-        GetKeyBtn.Text = "Erro ao copiar"
+        GetKeyBtn.Text = "Erro"
+        StatusText.Text = "Seu executor não suporta copiar link."
         task.wait(2)
         GetKeyBtn.Text = "Pegar Key"
     end
@@ -242,23 +243,34 @@ VerifyBtn.MouseButton1Click:Connect(function()
     if isProcessing then return end 
     isProcessing = true
 
-    VerifyBtn.Text = "Verificando..."
+    VerifyBtn.Text = "Carregando..."
+    StatusText.Text = "Consultando servidor..."
+    StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    
     local inputKey = KeyInput.Text
 
-    if ValidateKey(inputKey) then
-        if writefile then
-            writefile(KeyFileName, inputKey)
-        end
+    local isValid, message = ValidateKey(inputKey)
+
+    if isValid then
+        if writefile then writefile(KeyFileName, inputKey) end
+        
         VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-        VerifyBtn.Text = "Sucesso!"
+        VerifyBtn.Text = "Aprovado!"
+        StatusText.Text = "Key válida! Abrindo script..."
+        StatusText.TextColor3 = Color3.fromRGB(0, 255, 0)
         task.wait(1)
 
         if ScreenGui then ScreenGui:Destroy() end
         StartMainScript()
     else
         VerifyBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-        VerifyBtn.Text = "Key Inválida!"
-        task.wait(2)
+        VerifyBtn.Text = "Erro!"
+        
+        -- MOSTRA O ERRO EXATO NA TELA
+        StatusText.Text = "Erro: " .. tostring(message)
+        StatusText.TextColor3 = Color3.fromRGB(255, 80, 80)
+        
+        task.wait(2.5)
         VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
         VerifyBtn.Text = "Verificar"
         isProcessing = false 
