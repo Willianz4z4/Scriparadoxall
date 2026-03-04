@@ -1,5 +1,5 @@
 -- ==========================================================
--- SISTEMA DE KEY - PANDA AUTH (VERSÃO ANTI-BLOQUEIO DELTA)
+-- SISTEMA DE KEY - PANDA AUTH (CORREÇÃO DEFINITIVA DELTA)
 -- ==========================================================
 
 local HttpService = game:GetService("HttpService")
@@ -22,35 +22,14 @@ local GetKeyURL = "https://pandadevelopment.net/getkey?service=" .. ServiceID ..
 -- FUNÇÃO DO SEU SCRIPT PRINCIPAL
 -- ==========================================================
 local function StartMainScript()
-    print("✅ Key validada com sucesso! O sistema passou pelo bloqueio do Delta.")
+    print("✅ [PARADOX] Key validada com sucesso! O sistema passou.")
     
-    -- COMO O SCRIPT ANTIGO DO GITHUB FOI DELETADO, VOCÊ PRECISA COLOCAR O NOVO AQUI:
+    -- COMO O SCRIPT DO GITHUB FOI DELETADO, COLOQUE O SEU NOVO SCRIPT ABAIXO:
     -- loadstring(game:HttpGet("COLOQUE_O_NOVO_LINK_AQUI"))()
 end
 
 -- ==========================================================
--- FUNÇÃO DE REQUISIÇÃO FORTE (BURLA O BLOQUEIO DO DELTA)
--- ==========================================================
-local function MakeRequest(url)
-    local req = (request or http_request or syn and syn.request)
-    if req then
-        local success, res = pcall(function()
-            return req({Url = url, Method = "GET"})
-        end)
-        if success and res then
-            return true, res.Body
-        end
-    end
-    
-    -- Plano B caso o request falhe
-    local success, res = pcall(function() return game:HttpGet(url) end)
-    if success and res then return true, res end
-    
-    return false, "O Delta bloqueou a conexão com a internet."
-end
-
--- ==========================================================
--- VALIDAÇÃO NA API OFICIAL DO PANDA AUTH
+-- VALIDAÇÃO DA KEY (ANTI-BLOQUEIO)
 -- ==========================================================
 local function ValidateKey(key)
     if not key or key == "" then return false, "Digite uma key!" end
@@ -59,26 +38,56 @@ local function ValidateKey(key)
     local encodedKey = HttpService:UrlEncode(key)
     local validationURL = "https://pandadevelopment.net/api/v1/validation?hwid=" .. HWID .. "&service=" .. ServiceID .. "&key=" .. encodedKey
 
-    local success, response = MakeRequest(validationURL)
+    local success = false
+    local responseBody = ""
 
-    if success and response then
-        if string.find(response, "404") then return false, "Erro 404: API do Panda offline." end
-        local decodeSuccess, data = pcall(function() return HttpService:JSONDecode(response) end)
-        
-        if decodeSuccess and data then
-            if data.success == true or data.success == "true" then 
-                return true, "Sucesso!"
-            else 
-                return false, tostring(data.message or "Key inválida ou HWID incorreto") 
-            end
-        else
-            if string.find(string.lower(response), '"success":true') or string.find(string.lower(response), "success") then 
-                return true, "Sucesso!" 
-            end
-            return false, "Key não aprovada pelo servidor"
+    -- Tenta usar request/http_request (O método que o Delta prefere)
+    local reqFunc = request or http_request or (syn and syn.request)
+    if reqFunc then
+        local ok, res = pcall(function()
+            return reqFunc({Url = validationURL, Method = "GET"})
+        end)
+        if ok and res and res.Body then
+            success = true
+            responseBody = res.Body
+        end
+    end
+
+    -- Se o request falhar, tenta game:HttpGet como plano B
+    if not success then
+        local ok, res = pcall(function()
+            return game:HttpGet(validationURL)
+        end)
+        if ok and res then
+            success = true
+            responseBody = res
+        end
+    end
+
+    -- Tratamento de Erro Limpo (Evita vazar texto gigante na tela)
+    if not success then
+        return false, "O Delta bloqueou a conexão."
+    end
+
+    if string.find(responseBody, "404") then 
+        return false, "A API do Panda está offline." 
+    end
+
+    local decodeSuccess, data = pcall(function() 
+        return HttpService:JSONDecode(responseBody) 
+    end)
+    
+    if decodeSuccess and data then
+        if data.success == true or data.success == "true" then 
+            return true, "Sucesso!"
+        else 
+            return false, "Key inválida ou expirada." 
         end
     else
-        return false, response or "Falha de conexão"
+        if string.find(string.lower(responseBody), '"success":true') or string.find(string.lower(responseBody), "success") then 
+            return true, "Sucesso!" 
+        end
+        return false, "Key não aprovada."
     end
 end
 
@@ -145,7 +154,7 @@ VerifyBtn.Text = "Verificar"; VerifyBtn.Font = Enum.Font.GothamBold; VerifyBtn.T
 VerifyBtn.Parent = MainFrame
 local VerifyCorner = Instance.new("UICorner"); VerifyCorner.CornerRadius = UDim.new(0, 6); VerifyCorner.Parent = VerifyBtn
 
--- Lógica para arrastar a janela
+-- Arrastar Interface
 local dragging, dragInput, dragStart, startPos
 local function update(input)
     local delta = input.Position - dragStart
@@ -162,17 +171,17 @@ MainFrame.InputChanged:Connect(function(input)
 end)
 UserInputService.InputChanged:Connect(function(input) if input == dragInput and dragging then update(input) end end)
 
--- Lógica dos botões
+-- Botões
 local isProcessing = false 
 
 GetKeyBtn.MouseButton1Click:Connect(function()
     if isProcessing then return end; isProcessing = true
     if setclipboard then
         setclipboard(GetKeyURL)
-        GetKeyBtn.Text = "Link Copiado!"; StatusText.Text = "Cole o link no navegador!"; StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        GetKeyBtn.Text = "Copiado!"; StatusText.Text = "Cole no navegador!"; StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
         task.wait(2); GetKeyBtn.Text = "Pegar Key"
     else
-        GetKeyBtn.Text = "Erro"; StatusText.Text = "Seu executor não suporta setclipboard."
+        GetKeyBtn.Text = "Erro"; StatusText.Text = "Seu executor não suporta cópia."
         task.wait(2); GetKeyBtn.Text = "Pegar Key"
     end
     isProcessing = false 
@@ -187,13 +196,13 @@ VerifyBtn.MouseButton1Click:Connect(function()
     if isValid then
         if writefile then writefile(KeyFileName, inputKey) end
         VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0); VerifyBtn.Text = "Aprovado!"
-        StatusText.Text = "Key válida! Abrindo script..."; StatusText.TextColor3 = Color3.fromRGB(0, 255, 0)
+        StatusText.Text = "Key válida! Iniciando..."; StatusText.TextColor3 = Color3.fromRGB(0, 255, 0)
         task.wait(1)
         if ScreenGui then ScreenGui:Destroy() end
         StartMainScript()
     else
         VerifyBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0); VerifyBtn.Text = "Erro!"
-        StatusText.Text = "Erro: " .. tostring(message); StatusText.TextColor3 = Color3.fromRGB(255, 80, 80)
+        StatusText.Text = tostring(message); StatusText.TextColor3 = Color3.fromRGB(255, 80, 80)
         task.wait(2.5)
         VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255); VerifyBtn.Text = "Verificar"
         isProcessing = false 
