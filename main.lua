@@ -1,5 +1,5 @@
 -- ==========================================================
--- SISTEMA DE KEY - PANDA AUTH (CORREÇÃO PARA DELTA EXECUTOR)
+-- SISTEMA DE KEY - PANDA AUTH (VERSÃO ANTI-BLOQUEIO DELTA)
 -- ==========================================================
 
 local HttpService = game:GetService("HttpService")
@@ -8,13 +8,13 @@ local UserInputService = game:GetService("UserInputService")
 local ServiceID = "drivingempireparadoxall" 
 local KeyFileName = "Paradox_DrivingEmpire_Key.txt"
 
+-- Captura do HWID
 local rawHWID = ""
-if gethwid then
-    rawHWID = gethwid()
-else
-    rawHWID = game:GetService("RbxAnalyticsService"):GetClientId()
+if gethwid then 
+    rawHWID = gethwid() 
+else 
+    rawHWID = game:GetService("RbxAnalyticsService"):GetClientId() 
 end
-
 local HWID = HttpService:UrlEncode(rawHWID)
 local GetKeyURL = "https://pandadevelopment.net/getkey?service=" .. ServiceID .. "&hwid=" .. HWID
 
@@ -22,15 +22,17 @@ local GetKeyURL = "https://pandadevelopment.net/getkey?service=" .. ServiceID ..
 -- FUNÇÃO DO SEU SCRIPT PRINCIPAL
 -- ==========================================================
 local function StartMainScript()
-    print("✅ Key validada com sucesso! O sistema funciona.")
-    -- Aqui entraria o script real do jogo, mas como vimos, o seu do GitHub foi deletado.
+    print("✅ Key validada com sucesso! O sistema passou pelo bloqueio do Delta.")
+    
+    -- COMO O SCRIPT ANTIGO DO GITHUB FOI DELETADO, VOCÊ PRECISA COLOCAR O NOVO AQUI:
+    -- loadstring(game:HttpGet("COLOQUE_O_NOVO_LINK_AQUI"))()
 end
 
 -- ==========================================================
 -- FUNÇÃO DE REQUISIÇÃO FORTE (BURLA O BLOQUEIO DO DELTA)
 -- ==========================================================
 local function MakeRequest(url)
-    local req = (request or http_request or syn.request)
+    local req = (request or http_request or syn and syn.request)
     if req then
         local success, res = pcall(function()
             return req({Url = url, Method = "GET"})
@@ -40,64 +42,43 @@ local function MakeRequest(url)
         end
     end
     
-    -- Se o request falhar, tenta o HttpGet como plano B
-    local success, res = pcall(function()
-        return game:HttpGet(url)
-    end)
+    -- Plano B caso o request falhe
+    local success, res = pcall(function() return game:HttpGet(url) end)
     if success and res then return true, res end
     
-    return false, nil
+    return false, "O Delta bloqueou a conexão com a internet."
 end
 
 -- ==========================================================
--- VALIDAÇÃO NA API OFICIAL
+-- VALIDAÇÃO NA API OFICIAL DO PANDA AUTH
 -- ==========================================================
 local function ValidateKey(key)
     if not key or key == "" then return false, "Digite uma key!" end
     
     key = string.gsub(key, "^%s*(.-)%s*$", "%1")
     local encodedKey = HttpService:UrlEncode(key)
-
     local validationURL = "https://pandadevelopment.net/api/v1/validation?hwid=" .. HWID .. "&service=" .. ServiceID .. "&key=" .. encodedKey
 
     local success, response = MakeRequest(validationURL)
 
     if success and response then
-        if string.find(response, "404") then
-            return false, "Erro 404: API do Panda offline."
-        end
-
-        local decodeSuccess, data = pcall(function()
-            return HttpService:JSONDecode(response)
-        end)
+        if string.find(response, "404") then return false, "Erro 404: API do Panda offline." end
+        local decodeSuccess, data = pcall(function() return HttpService:JSONDecode(response) end)
         
         if decodeSuccess and data then
-            if data.success == true or data.success == "true" then
+            if data.success == true or data.success == "true" then 
                 return true, "Sucesso!"
-            else
-                return false, tostring(data.message or "Key inválida ou HWID incorreto")
+            else 
+                return false, tostring(data.message or "Key inválida ou HWID incorreto") 
             end
         else
-            if string.find(string.lower(response), '"success":true') or string.find(string.lower(response), "success") then
-                return true, "Sucesso!"
+            if string.find(string.lower(response), '"success":true') or string.find(string.lower(response), "success") then 
+                return true, "Sucesso!" 
             end
             return false, "Key não aprovada pelo servidor"
         end
     else
-        return false, "Executor bloqueou a conexão (Falha no request/HttpGet)"
-    end
-end
-
--- ==========================================================
--- AUTO-LOGIN
--- ==========================================================
-if isfile and isfile(KeyFileName) then
-    local savedKey = readfile(KeyFileName)
-    local isValid, _ = ValidateKey(savedKey)
-    if isValid then
-        StartMainScript()
-    else
-        if delfile then delfile(KeyFileName) end
+        return false, response or "Falha de conexão"
     end
 end
 
@@ -105,10 +86,7 @@ end
 -- INTERFACE GRÁFICA (UI)
 -- ==========================================================
 local CoreGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-
-if CoreGui:FindFirstChild("ParadoxKeySystem") then
-    CoreGui.ParadoxKeySystem:Destroy()
-end
+if CoreGui:FindFirstChild("ParadoxKeySystem") then CoreGui.ParadoxKeySystem:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ParadoxKeySystem"
@@ -124,84 +102,50 @@ MainFrame.Active = true
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 10)
-UICorner.Parent = MainFrame
+UICorner.CornerRadius = UDim.new(0, 10); UICorner.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundTransparency = 1
-Title.Text = "PARADOX | DRIVING EMPIRE"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
+Title.BackgroundTransparency = 1; Title.Text = "PARADOX | DRIVING EMPIRE"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255); Title.Font = Enum.Font.GothamBold; Title.TextSize = 16
 Title.Parent = MainFrame
 
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0, 5)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 18
+CloseBtn.Size = UDim2.new(0, 30, 0, 30); CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundTransparency = 1; CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80); CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.TextSize = 18
 CloseBtn.Parent = MainFrame
-
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 local KeyInput = Instance.new("TextBox")
-KeyInput.Size = UDim2.new(0, 300, 0, 40)
-KeyInput.Position = UDim2.new(0.5, -150, 0, 60)
-KeyInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyInput.Size = UDim2.new(0, 300, 0, 40); KeyInput.Position = UDim2.new(0.5, -150, 0, 60)
+KeyInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40); KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
 KeyInput.PlaceholderText = "Cole sua Key aqui..."
-KeyInput.Font = Enum.Font.Gotham
-KeyInput.TextSize = 14
-KeyInput.Text = ""
-KeyInput.ClearTextOnFocus = false
-KeyInput.Parent = MainFrame
-
-local InputCorner = Instance.new("UICorner")
-InputCorner.CornerRadius = UDim.new(0, 6)
-InputCorner.Parent = KeyInput
+KeyInput.Font = Enum.Font.Gotham; KeyInput.TextSize = 14; KeyInput.Text = ""
+KeyInput.ClearTextOnFocus = false; KeyInput.Parent = MainFrame
+local InputCorner = Instance.new("UICorner"); InputCorner.CornerRadius = UDim.new(0, 6); InputCorner.Parent = KeyInput
 
 local StatusText = Instance.new("TextLabel")
-StatusText.Size = UDim2.new(1, 0, 0, 20)
-StatusText.Position = UDim2.new(0, 0, 0, 110)
-StatusText.BackgroundTransparency = 1
-StatusText.Text = "Pronto para validar."
-StatusText.TextColor3 = Color3.fromRGB(170, 170, 170)
-StatusText.Font = Enum.Font.Gotham
-StatusText.TextSize = 12
+StatusText.Size = UDim2.new(1, 0, 0, 20); StatusText.Position = UDim2.new(0, 0, 0, 110)
+StatusText.BackgroundTransparency = 1; StatusText.Text = "Pronto para validar."
+StatusText.TextColor3 = Color3.fromRGB(170, 170, 170); StatusText.Font = Enum.Font.Gotham; StatusText.TextSize = 12
 StatusText.Parent = MainFrame
 
 local GetKeyBtn = Instance.new("TextButton")
-GetKeyBtn.Size = UDim2.new(0, 140, 0, 35)
-GetKeyBtn.Position = UDim2.new(0, 25, 0, 150)
-GetKeyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-GetKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-GetKeyBtn.Text = "Pegar Key"
-GetKeyBtn.Font = Enum.Font.GothamBold
-GetKeyBtn.TextSize = 14
+GetKeyBtn.Size = UDim2.new(0, 140, 0, 35); GetKeyBtn.Position = UDim2.new(0, 25, 0, 150)
+GetKeyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60); GetKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+GetKeyBtn.Text = "Pegar Key"; GetKeyBtn.Font = Enum.Font.GothamBold; GetKeyBtn.TextSize = 14
 GetKeyBtn.Parent = MainFrame
-
-local GetKeyCorner = Instance.new("UICorner")
-GetKeyCorner.CornerRadius = UDim.new(0, 6)
-GetKeyCorner.Parent = GetKeyBtn
+local GetKeyCorner = Instance.new("UICorner"); GetKeyCorner.CornerRadius = UDim.new(0, 6); GetKeyCorner.Parent = GetKeyBtn
 
 local VerifyBtn = Instance.new("TextButton")
-VerifyBtn.Size = UDim2.new(0, 140, 0, 35)
-VerifyBtn.Position = UDim2.new(0, 185, 0, 150)
-VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-VerifyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-VerifyBtn.Text = "Verificar"
-VerifyBtn.Font = Enum.Font.GothamBold
-VerifyBtn.TextSize = 14
+VerifyBtn.Size = UDim2.new(0, 140, 0, 35); VerifyBtn.Position = UDim2.new(0, 185, 0, 150)
+VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255); VerifyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+VerifyBtn.Text = "Verificar"; VerifyBtn.Font = Enum.Font.GothamBold; VerifyBtn.TextSize = 14
 VerifyBtn.Parent = MainFrame
+local VerifyCorner = Instance.new("UICorner"); VerifyCorner.CornerRadius = UDim.new(0, 6); VerifyCorner.Parent = VerifyBtn
 
-local VerifyCorner = Instance.new("UICorner")
-VerifyCorner.CornerRadius = UDim.new(0, 6)
-VerifyCorner.Parent = VerifyBtn
-
+-- Lógica para arrastar a janela
 local dragging, dragInput, dragStart, startPos
 local function update(input)
     local delta = input.Position - dragStart
@@ -216,17 +160,16 @@ end)
 MainFrame.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
 end)
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then update(input) end
-end)
+UserInputService.InputChanged:Connect(function(input) if input == dragInput and dragging then update(input) end end)
 
+-- Lógica dos botões
 local isProcessing = false 
 
 GetKeyBtn.MouseButton1Click:Connect(function()
     if isProcessing then return end; isProcessing = true
     if setclipboard then
         setclipboard(GetKeyURL)
-        GetKeyBtn.Text = "Link Copiado!"; StatusText.Text = "Cole o link no seu navegador!"; StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        GetKeyBtn.Text = "Link Copiado!"; StatusText.Text = "Cole o link no navegador!"; StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
         task.wait(2); GetKeyBtn.Text = "Pegar Key"
     else
         GetKeyBtn.Text = "Erro"; StatusText.Text = "Seu executor não suporta setclipboard."
@@ -256,3 +199,10 @@ VerifyBtn.MouseButton1Click:Connect(function()
         isProcessing = false 
     end
 end)
+
+-- Auto-Login
+if isfile and isfile(KeyFileName) then
+    local savedKey = readfile(KeyFileName)
+    local isValid, _ = ValidateKey(savedKey)
+    if isValid then StartMainScript() else if delfile then delfile(KeyFileName) end end
+end
