@@ -1,15 +1,13 @@
 -- ==========================================================
--- SISTEMA DE KEY - PANDA AUTH (CORRIGIDO)
+-- SISTEMA DE KEY - PANDA AUTH (CORREÇÃO PARA DELTA EXECUTOR)
 -- ==========================================================
 
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 
--- O ServiceID exato que a API do Panda precisa
 local ServiceID = "drivingempireparadoxall" 
 local KeyFileName = "Paradox_DrivingEmpire_Key.txt"
 
--- Captura o HWID do celular/Delta
 local rawHWID = ""
 if gethwid then
     rawHWID = gethwid()
@@ -17,23 +15,38 @@ else
     rawHWID = game:GetService("RbxAnalyticsService"):GetClientId()
 end
 
--- Limpa/Codifica o HWID para não quebrar o link no navegador
 local HWID = HttpService:UrlEncode(rawHWID)
-
--- URL atualizada do Panda Auth
 local GetKeyURL = "https://pandadevelopment.net/getkey?service=" .. ServiceID .. "&hwid=" .. HWID
 
 -- ==========================================================
 -- FUNÇÃO DO SEU SCRIPT PRINCIPAL
 -- ==========================================================
 local function StartMainScript()
-    print("✅ Key validada! Iniciando sistemas de automação...")
+    print("✅ Key validada com sucesso! O sistema funciona.")
+    -- Aqui entraria o script real do jogo, mas como vimos, o seu do GitHub foi deletado.
+end
 
-    -- ==========================================================
-    -- ATENÇÃO: Se o link abaixo estiver quebrado/deletado, vai dar erro 404!
-    -- Verifique se a URL do seu script realmente funciona no navegador.
-    -- ==========================================================
-    -- loadstring(game:HttpGet("SEU_LINK_AQUI"))()
+-- ==========================================================
+-- FUNÇÃO DE REQUISIÇÃO FORTE (BURLA O BLOQUEIO DO DELTA)
+-- ==========================================================
+local function MakeRequest(url)
+    local req = (request or http_request or syn.request)
+    if req then
+        local success, res = pcall(function()
+            return req({Url = url, Method = "GET"})
+        end)
+        if success and res then
+            return true, res.Body
+        end
+    end
+    
+    -- Se o request falhar, tenta o HttpGet como plano B
+    local success, res = pcall(function()
+        return game:HttpGet(url)
+    end)
+    if success and res then return true, res end
+    
+    return false, nil
 end
 
 -- ==========================================================
@@ -42,20 +55,16 @@ end
 local function ValidateKey(key)
     if not key or key == "" then return false, "Digite uma key!" end
     
-    key = string.gsub(key, "^%s*(.-)%s*$", "%1") -- Remove espaços
+    key = string.gsub(key, "^%s*(.-)%s*$", "%1")
     local encodedKey = HttpService:UrlEncode(key)
 
-    -- URL de validação padrão e mais estável do Panda
     local validationURL = "https://pandadevelopment.net/api/v1/validation?hwid=" .. HWID .. "&service=" .. ServiceID .. "&key=" .. encodedKey
 
-    local success, response = pcall(function()
-        return game:HttpGet(validationURL)
-    end)
+    local success, response = MakeRequest(validationURL)
 
     if success and response then
-        -- Evita que o erro 404 crashe o script silenciosamente
         if string.find(response, "404") then
-            return false, "Erro 404: API do Panda offline ou link incorreto."
+            return false, "Erro 404: API do Panda offline."
         end
 
         local decodeSuccess, data = pcall(function()
@@ -75,21 +84,19 @@ local function ValidateKey(key)
             return false, "Key não aprovada pelo servidor"
         end
     else
-        return false, "Erro de Conexão com a Internet/API"
+        return false, "Executor bloqueou a conexão (Falha no request/HttpGet)"
     end
 end
 
 -- ==========================================================
--- AUTO-LOGIN SILENCIOSO
+-- AUTO-LOGIN
 -- ==========================================================
 if isfile and isfile(KeyFileName) then
     local savedKey = readfile(KeyFileName)
     local isValid, _ = ValidateKey(savedKey)
     if isValid then
         StartMainScript()
-        -- O return foi removido daqui para garantir que, caso o auto-login falhe, a UI ainda carregue se algo der errado na thread.
     else
-        -- Se a key salva não for mais válida, deleta o arquivo
         if delfile then delfile(KeyFileName) end
     end
 end
@@ -139,9 +146,7 @@ CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 18
 CloseBtn.Parent = MainFrame
 
-CloseBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 local KeyInput = Instance.new("TextBox")
 KeyInput.Size = UDim2.new(0, 300, 0, 40)
@@ -197,95 +202,57 @@ local VerifyCorner = Instance.new("UICorner")
 VerifyCorner.CornerRadius = UDim.new(0, 6)
 VerifyCorner.Parent = VerifyBtn
 
--- ==========================================================
--- SISTEMA DE DRAG (ARRASTAR)
--- ==========================================================
 local dragging, dragInput, dragStart, startPos
-
 local function update(input)
     local delta = input.Position - dragStart
     MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
-
 MainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
+        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
+        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
     end
 end)
-
 MainFrame.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then update(input) end
 end)
 
--- ==========================================================
--- LÓGICA DE BOTÕES
--- ==========================================================
 local isProcessing = false 
 
 GetKeyBtn.MouseButton1Click:Connect(function()
-    if isProcessing then return end 
-    isProcessing = true
-
+    if isProcessing then return end; isProcessing = true
     if setclipboard then
         setclipboard(GetKeyURL)
-        GetKeyBtn.Text = "Link Copiado!"
-        StatusText.Text = "Cole o link no seu navegador!"
-        StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
-        task.wait(2)
-        GetKeyBtn.Text = "Pegar Key"
+        GetKeyBtn.Text = "Link Copiado!"; StatusText.Text = "Cole o link no seu navegador!"; StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        task.wait(2); GetKeyBtn.Text = "Pegar Key"
     else
-        GetKeyBtn.Text = "Erro"
-        StatusText.Text = "Erro ao copiar. Seu executor não suporta setclipboard."
-        task.wait(2)
-        GetKeyBtn.Text = "Pegar Key"
+        GetKeyBtn.Text = "Erro"; StatusText.Text = "Seu executor não suporta setclipboard."
+        task.wait(2); GetKeyBtn.Text = "Pegar Key"
     end
-
     isProcessing = false 
 end)
 
 VerifyBtn.MouseButton1Click:Connect(function()
-    if isProcessing then return end 
-    isProcessing = true
-
-    VerifyBtn.Text = "Carregando..."
-    StatusText.Text = "Consultando servidor Panda Auth..."
-    StatusText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    
+    if isProcessing then return end; isProcessing = true
+    VerifyBtn.Text = "Carregando..."; StatusText.Text = "Consultando servidor..."
     local inputKey = KeyInput.Text
-
     local isValid, message = ValidateKey(inputKey)
 
     if isValid then
         if writefile then writefile(KeyFileName, inputKey) end
-        
-        VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-        VerifyBtn.Text = "Aprovado!"
-        StatusText.Text = "Key válida! Abrindo script..."
-        StatusText.TextColor3 = Color3.fromRGB(0, 255, 0)
+        VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0); VerifyBtn.Text = "Aprovado!"
+        StatusText.Text = "Key válida! Abrindo script..."; StatusText.TextColor3 = Color3.fromRGB(0, 255, 0)
         task.wait(1)
-
         if ScreenGui then ScreenGui:Destroy() end
         StartMainScript()
     else
-        VerifyBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-        VerifyBtn.Text = "Erro!"
-        
-        StatusText.Text = "Erro: " .. tostring(message)
-        StatusText.TextColor3 = Color3.fromRGB(255, 80, 80)
-        
+        VerifyBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0); VerifyBtn.Text = "Erro!"
+        StatusText.Text = "Erro: " .. tostring(message); StatusText.TextColor3 = Color3.fromRGB(255, 80, 80)
         task.wait(2.5)
-        VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-        VerifyBtn.Text = "Verificar"
+        VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255); VerifyBtn.Text = "Verificar"
         isProcessing = false 
     end
 end)
