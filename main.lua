@@ -1,5 +1,5 @@
 -- ==========================================================
--- SISTEMA DE KEY - PANDA AUTH (CORREÇÃO DEFINITIVA DELTA)
+-- SISTEMA DE KEY - PANDA AUTH (VIA PROXY RENDER)
 -- ==========================================================
 
 local HttpService = game:GetService("HttpService")
@@ -16,6 +16,8 @@ else
     rawHWID = game:GetService("RbxAnalyticsService"):GetClientId() 
 end
 local HWID = HttpService:UrlEncode(rawHWID)
+
+-- Link para o jogador PEGAR a key (Continua sendo o original do Panda)
 local GetKeyURL = "https://pandadevelopment.net/getkey?service=" .. ServiceID .. "&hwid=" .. HWID
 
 -- ==========================================================
@@ -23,20 +25,22 @@ local GetKeyURL = "https://pandadevelopment.net/getkey?service=" .. ServiceID ..
 -- ==========================================================
 local function StartMainScript()
     print("✅ [PARADOX] Key validada com sucesso! O sistema passou.")
-    
+
     -- COMO O SCRIPT DO GITHUB FOI DELETADO, COLOQUE O SEU NOVO SCRIPT ABAIXO:
     -- loadstring(game:HttpGet("COLOQUE_O_NOVO_LINK_AQUI"))()
 end
 
 -- ==========================================================
--- VALIDAÇÃO DA KEY (ANTI-BLOQUEIO)
+-- VALIDAÇÃO DA KEY (AGORA PASSANDO PELO SEU SERVIDOR RENDER)
 -- ==========================================================
 local function ValidateKey(key)
     if not key or key == "" then return false, "Digite uma key!" end
-    
+
     key = string.gsub(key, "^%s*(.-)%s*$", "%1")
     local encodedKey = HttpService:UrlEncode(key)
-    local validationURL = "https://pandadevelopment.net/api/v1/validation?hwid=" .. HWID .. "&service=" .. ServiceID .. "&key=" .. encodedKey
+    
+    -- 🚀 A MÁGICA ACONTECE AQUI: Apontando para o seu Proxy no Render
+    local validationURL = "https://paradoxtalks.onrender.com/?key=" .. encodedKey .. "&hwid=" .. HWID
 
     local success = false
     local responseBody = ""
@@ -64,30 +68,23 @@ local function ValidateKey(key)
         end
     end
 
-    -- Tratamento de Erro Limpo (Evita vazar texto gigante na tela)
+    -- Tratamento de Erro Limpo
     if not success then
-        return false, "O Delta bloqueou a conexão."
-    end
-
-    if string.find(responseBody, "404") then 
-        return false, "A API do Panda está offline." 
+        return false, "O Delta bloqueou a conexão ou seu Proxy dormiu."
     end
 
     local decodeSuccess, data = pcall(function() 
         return HttpService:JSONDecode(responseBody) 
     end)
-    
+
     if decodeSuccess and data then
         if data.success == true or data.success == "true" then 
             return true, "Sucesso!"
         else 
-            return false, "Key inválida ou expirada." 
+            return false, data.message or "Key inválida ou expirada." 
         end
     else
-        if string.find(string.lower(responseBody), '"success":true') or string.find(string.lower(responseBody), "success") then 
-            return true, "Sucesso!" 
-        end
-        return false, "Key não aprovada."
+        return false, "Erro de comunicação com o servidor."
     end
 end
 
