@@ -91,11 +91,13 @@ local function loadConfig()
         pcall(function()
             local data = HttpService:JSONDecode(readfile(configName))
             if data then
+                -- Auto Police é Free, então todo mundo carrega
+                _G.AutoPolice = data.AutoPolice or false
+                
+                -- Auto Hop é Premium
                 if UserRole == "Premium" or UserRole == "Partner" then
-                    _G.AutoPolice = data.AutoPolice or false
                     _G.AutoHop = data.AutoHop or false
                 else
-                    _G.AutoPolice = false
                     _G.AutoHop = false
                 end
             end
@@ -435,19 +437,21 @@ SpeedTitle.Parent = RobPage
 
 local SafeBtn = Instance.new("TextButton"); SafeBtn.Size = UDim2.new(0.28, 0, 0, 30); SafeBtn.Position = UDim2.new(0.05, 0, 0, 170); SafeBtn.BackgroundColor3 = Color3.fromRGB(30, 150, 60); SafeBtn.Text = "SAFE"; SafeBtn.TextColor3 = Color3.fromRGB(255, 255, 255); SafeBtn.Font = Enum.Font.GothamBold; applyCorner(SafeBtn, 6); SafeBtn.Parent = RobPage
 local FastBtn = Instance.new("TextButton"); FastBtn.Size = UDim2.new(0.28, 0, 0, 30); FastBtn.Position = UDim2.new(0.36, 0, 0, 170); FastBtn.BackgroundColor3 = Color3.fromRGB(200, 120, 0); FastBtn.Text = "FAST"; FastBtn.TextColor3 = Color3.fromRGB(255, 255, 255); FastBtn.Font = Enum.Font.GothamBold; applyCorner(FastBtn, 6); FastBtn.Parent = RobPage
+
+-- MAX TP agora é restrito ao Premium
 local InsaneBtn = Instance.new("TextButton"); InsaneBtn.Size = UDim2.new(0.28, 0, 0, 30); InsaneBtn.Position = UDim2.new(0.67, 0, 0, 170); 
 if UserRole == "Premium" or UserRole == "Partner" then
     InsaneBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 else
-    InsaneBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80) -- Grayed out for free users
+    InsaneBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80) -- Cinza para os Free
 end
 InsaneBtn.Text = "MAX TP [👑]"; InsaneBtn.TextColor3 = Color3.fromRGB(255, 255, 255); InsaneBtn.Font = Enum.Font.GothamBold; applyCorner(InsaneBtn, 6); InsaneBtn.Parent = RobPage
 
 -- ==========================================
--- PAGE 3: AUTO POLICE (PREMIUM ONLY)
+-- PAGE 3: AUTO POLICE (MIXED: FREE / PREMIUM)
 -- ==========================================
 local PolicePage = createPage("PolicePage")
-local PoliceTitle = createTitle(PolicePage, "🚓 Auto Police Mode [👑]")
+local PoliceTitle = createTitle(PolicePage, "🚓 Auto Police Mode")
 
 local PoliceImage = Instance.new("ImageLabel")
 PoliceImage.Size = UDim2.new(0, 45, 0, 45)
@@ -458,14 +462,11 @@ PoliceImage.Parent = PolicePage
 
 local StatusPolice = createStatus(PolicePage)
 
+-- HUNT CRIMINALS AGORA É FREE PARA TODOS
 local TogglePoliceBtn = Instance.new("TextButton")
 TogglePoliceBtn.Size = UDim2.new(0.9, 0, 0, 40)
 TogglePoliceBtn.Position = UDim2.new(0.05, 0, 0, 90)
-if UserRole == "Premium" or UserRole == "Partner" then
-    TogglePoliceBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-else
-    TogglePoliceBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-end
+TogglePoliceBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 TogglePoliceBtn.Text = "HUNT CRIMINALS [OFF]"
 TogglePoliceBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 TogglePoliceBtn.Font = Enum.Font.GothamBold
@@ -473,6 +474,7 @@ TogglePoliceBtn.TextSize = 14
 applyCorner(TogglePoliceBtn, 8)
 TogglePoliceBtn.Parent = PolicePage
 
+-- AUTO HOP AINDA É PREMIUM
 local ToggleHopBtn = Instance.new("TextButton")
 ToggleHopBtn.Size = UDim2.new(0.9, 0, 0, 40)
 ToggleHopBtn.Position = UDim2.new(0.05, 0, 0, 140)
@@ -481,19 +483,19 @@ if UserRole == "Premium" or UserRole == "Partner" then
 else
     ToggleHopBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 end
-ToggleHopBtn.Text = "🔄 AUTO SERVER HOP [OFF]"
+ToggleHopBtn.Text = "🔄 AUTO SERVER HOP [OFF] [👑]"
 ToggleHopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleHopBtn.Font = Enum.Font.GothamBold
-ToggleHopBtn.TextSize = 14
+ToggleHopBtn.TextSize = 13
 applyCorner(ToggleHopBtn, 8)
 ToggleHopBtn.Parent = PolicePage
 
-if _G.AutoPolice and (UserRole == "Premium" or UserRole == "Partner") then
+if _G.AutoPolice then
     TogglePoliceBtn.Text = "HUNT CRIMINALS [ON]"
     TogglePoliceBtn.BackgroundColor3 = Color3.fromRGB(30, 180, 60)
 end
 if _G.AutoHop and (UserRole == "Premium" or UserRole == "Partner") then
-    ToggleHopBtn.Text = "🔄 AUTO SERVER HOP [ON]"
+    ToggleHopBtn.Text = "🔄 AUTO SERVER HOP [ON] [👑]"
     ToggleHopBtn.BackgroundColor3 = Color3.fromRGB(30, 180, 60)
 end
 
@@ -655,10 +657,11 @@ ToggleRobBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- SPEED BUTTONS (WITH PREMIUM LOCK)
+-- SPEED BUTTONS
 SafeBtn.MouseButton1Click:Connect(function() _G.FarmSpeed = 80; SpeedTitle.Text = "Speed (Current: SAFE)" end)
 FastBtn.MouseButton1Click:Connect(function() _G.FarmSpeed = 150; SpeedTitle.Text = "Speed (Current: FAST)" end)
 
+-- Insane Btn (MAX TP) - Bloqueado pelo Premium
 InsaneBtn.MouseButton1Click:Connect(function() 
     if UserRole == "Premium" or UserRole == "Partner" then
         _G.FarmSpeed = 9999; 
@@ -668,13 +671,8 @@ InsaneBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- AUTO POLICE TOGGLE (PREMIUM LOCK)
+-- AUTO POLICE TOGGLE (AGORA É FREE)
 TogglePoliceBtn.MouseButton1Click:Connect(function()
-    if UserRole ~= "Premium" and UserRole ~= "Partner" then
-        task.spawn(notifyPremium, TogglePoliceBtn, "HUNT CRIMINALS [OFF]", Color3.fromRGB(80, 80, 80))
-        return
-    end
-
     _G.AutoPolice = not _G.AutoPolice
     saveConfig() 
 
@@ -710,7 +708,7 @@ end)
 -- AUTO HOP TOGGLE (PREMIUM LOCK)
 ToggleHopBtn.MouseButton1Click:Connect(function()
     if UserRole ~= "Premium" and UserRole ~= "Partner" then
-        task.spawn(notifyPremium, ToggleHopBtn, "🔄 AUTO SERVER HOP [OFF]", Color3.fromRGB(80, 80, 80))
+        task.spawn(notifyPremium, ToggleHopBtn, "🔄 AUTO SERVER HOP [OFF] [👑]", Color3.fromRGB(80, 80, 80))
         return
     end
 
@@ -718,10 +716,10 @@ ToggleHopBtn.MouseButton1Click:Connect(function()
     saveConfig() 
 
     if _G.AutoHop then
-        ToggleHopBtn.Text = "🔄 AUTO SERVER HOP [ON]"
+        ToggleHopBtn.Text = "🔄 AUTO SERVER HOP [ON] [👑]"
         ToggleHopBtn.BackgroundColor3 = Color3.fromRGB(30, 180, 60)
     else
-        ToggleHopBtn.Text = "🔄 AUTO SERVER HOP [OFF]"
+        ToggleHopBtn.Text = "🔄 AUTO SERVER HOP [OFF] [👑]"
         ToggleHopBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
     end
 end)
@@ -780,7 +778,7 @@ end
 -- ==========================================
 -- AUTO POLICE LOGIC (ORBITING & MAGNET)
 -- ==========================================
-if _G.AutoPolice and (UserRole == "Premium" or UserRole == "Partner") then
+if _G.AutoPolice then
     task.spawn(function()
         pcall(function()
             local remoteJob = ReplicatedStorage:FindFirstChild("RequestStartJobSession", true)
@@ -855,7 +853,7 @@ task.spawn(function()
             -- ========================================================
             local lastPromptFire = 0
             local lockStartTime = tick() 
-            local orbitAngle = 0 -- Variável para controlar o ângulo de órbita
+            local orbitAngle = 0 
             noclipActive = true 
 
             if StatusPolice and _G.AutoPolice and targetCriminal and targetCriminal.Parent then 
@@ -877,24 +875,20 @@ task.spawn(function()
                 end)
                 if not stillHasBag then break end 
 
-                -- Lógica de Órbita: O policial vai girar em volta do criminoso
                 if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and lp.Character:FindFirstChild("Humanoid") then
                     local targetPos = targetCriminal.Character.HumanoidRootPart.Position
-                    
-                    -- Calcula a nova posição em círculo (Raio de 6 studs)
+
                     local radius = 6 
-                    local orbitSpeed = 4 -- Velocidade do giro
-                    
+                    local orbitSpeed = 4 
+
                     local offsetX = math.cos(math.rad(orbitAngle)) * radius
                     local offsetZ = math.sin(math.rad(orbitAngle)) * radius
-                    
+
                     local newPosition = targetPos + Vector3.new(offsetX, 0, offsetZ)
-                    
-                    -- Atualiza a posição do HRP e faz o policial olhar pro criminoso
+
                     lp.Character.HumanoidRootPart.CFrame = CFrame.new(newPosition, targetPos)
                     lp.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0) 
-                    
-                    -- Incrementa o ângulo pra criar o movimento
+
                     orbitAngle = orbitAngle + orbitSpeed 
                     if orbitAngle >= 360 then orbitAngle = 0 end
                 end
@@ -948,7 +942,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- AUTO ROB LOGIC (OUTLAW WITH 'E' KEYPRESS)
+-- AUTO ROB LOGIC (OUTLAW WITH 'E' KEYPRESS FIX)
 -- ==========================================
 task.spawn(function()
     while task.wait(1) do
@@ -1013,29 +1007,30 @@ task.spawn(function()
                         if targetPos then 
                             foundATM = true
                             StatusRob.Text = "Status: Moving to target..."
-                            local safePos = targetPos + Vector3.new(0, 6.5, 0) 
+                            
+                            local safePos = targetPos + Vector3.new(0, 2.5, 0) 
                             moveToTarget(safePos)
+                            
                             if not _G.AutoRob then break end
                             if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
                                 local hrp = lp.Character.HumanoidRootPart; local hum = lp.Character:FindFirstChild("Humanoid")
+                                
+                                hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z))
+                                
                                 hrp.Anchored = false; noclipActive = false; hrp.Velocity = Vector3.new(0,0,0)
                                 if hum then hum:ChangeState(Enum.HumanoidStateType.Landed); hum.WalkSpeed = 16; hum.JumpPower = 50 end
-                                task.wait(0.8) 
+                                
+                                task.wait(1) 
                                 StatusRob.Text = "Status: Freezing and Robbing..."
                                 hrp.Anchored = true; if hum then hum.WalkSpeed = 0; hum.JumpPower = 0 end
-                                task.wait(1.8) 
-                                
-                                -- Tenta usar o VirtualInputManager para simular a tecla 'E'
+                                task.wait(0.5) 
+
                                 local success, err = pcall(function()
-                                    -- A tecla padrão de interação no Roblox é 'E' (Enum.KeyCode.E)
-                                    -- Pressiona a tecla
                                     VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                                     task.wait(prompt.HoldDuration + 0.5) 
-                                    -- Solta a tecla
                                     VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                                 end)
 
-                                -- Fallback de segurança se o VIM falhar
                                 if not success then
                                     if fireproximityprompt then
                                         fireproximityprompt(prompt, 1)
