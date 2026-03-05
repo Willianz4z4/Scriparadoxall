@@ -730,30 +730,67 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- NOCLIP LOOP APRIMORADO (Bloqueia acúmulo de velocidade e colisões)
 RunService.Stepped:Connect(function()
     if noclipActive and lp.Character then
         for _, part in pairs(lp.Character:GetDescendants()) do
             if part:IsA("BasePart") then part.CanCollide = false end
         end
+        local hrp = lp.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.Velocity = Vector3.new(0, 0, 0)
+            hrp.RotVelocity = Vector3.new(0, 0, 0)
+        end
     end
 end)
 
+-- ==========================================
+-- MOVEMENT SYSTEM (ANTI-RUBBERBAND COM TWEEN)
+-- ==========================================
 local function moveToTarget(finalDest)
     local char = lp.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
     if not hrp then return false end
+    
+    -- Joga pra fora do carro antes de teleportar pra não bugar
+    if hum and hum.SeatPart then
+        hum.Sit = false
+        task.wait(0.2)
+    end
+
     noclipActive = true
     hrp.Anchored = true
+    
     local startPos = hrp.Position
     local dist = (startPos - finalDest).Magnitude
-    if _G.FarmSpeed > 1000 then hrp.CFrame = CFrame.new(finalDest); task.wait(0.2); return true end
-    local steps = math.ceil(dist / (_G.FarmSpeed / 10))
-    for i = 1, steps do
-        if not _G.AutoRob and not _G.AutoPolice then break end
-        hrp.CFrame = CFrame.new(startPos:Lerp(finalDest, i / steps))
-        task.wait(0.05)
+    
+    if _G.FarmSpeed > 1000 then 
+        hrp.CFrame = CFrame.new(finalDest)
+        task.wait(0.5) 
+        return true 
     end
-    hrp.CFrame = CFrame.new(finalDest)
+    
+    local timeToTravel = dist / _G.FarmSpeed
+    local tweenInfo = TweenInfo.new(timeToTravel, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(finalDest)})
+    tween:Play()
+    
+    local reached = false
+    local connection
+    connection = tween.Completed:Connect(function()
+        reached = true
+    end)
+    
+    while not reached do
+        if not _G.AutoRob and not _G.AutoPolice then
+            tween:Cancel()
+            break
+        end
+        task.wait(0.1)
+    end
+    
+    if connection then connection:Disconnect() end
     return true
 end
 
@@ -843,13 +880,11 @@ task.spawn(function()
 
                 local timeElapsed = tick() - lockStartTime
                 
-                -- Timeout total aumentou para 25s
                 if timeElapsed > 25 then
                     if StatusPolice then StatusPolice.Text = "Status: Timeout (25s). Restarting approach..." end
                     break 
                 end
 
-                -- NOVA LÓGICA: Ativa predição após 14s
                 if timeElapsed > 14 then
                     isPredicting = true
                 end
@@ -868,11 +903,9 @@ task.spawn(function()
 
                     if isPredicting then
                         if StatusPolice then StatusPolice.Text = "Status: 14s passed. Predicting Ping..." end
-                        -- Joga a mira para frente baseada na velocidade atual do alvo
                         targetPos = targetPos + (targetHRP.Velocity * 0.4) 
                     end
 
-                    -- Se estiver prevendo, a órbita fica um pouco mais larga para não bater e voar longe
                     local radius = isPredicting and 8 or 6 
                     local orbitSpeed = isPredicting and 6 or 4 
 
@@ -959,20 +992,20 @@ task.spawn(function()
 
             if dropOffPoint then
                 StatusRob.Text = "Status: Dropping off money at base..."
-                local posOutsideZone = dropOffPoint.Position + Vector3.new(5, 3, 0)
-                moveToTarget(posOutsideZone)
+                
+                -- Cai direto na base para acionar a zona corretamente
+                moveToTarget(dropOffPoint.Position + Vector3.new(0, 3, 0))
                 if not _G.AutoRob then continue end
+                
                 if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-                    local hrp = lp.Character.HumanoidRootPart; local hum = lp.Character:FindFirstChild("Humanoid")
-                    hrp.Anchored = false; noclipActive = false; hrp.Velocity = Vector3.new(0,0,0)
-                    if hum then 
-                        hum:ChangeState(Enum.HumanoidStateType.Landed); task.wait(0.5)
-                        hum:MoveTo(dropOffPoint.Position)
-                        local timeout = tick() + 4
-                        while tick() < timeout and (hrp.Position - dropOffPoint.Position).Magnitude > 3 do task.wait(0.1) end
-                        hum.Jump = true 
-                    end
-                    StatusRob.Text = "Status: Delivering bags..."; task.wait(3) 
+                    local hrp = lp.Character.HumanoidRootPart
+                    hrp.Anchored = false
+                    noclipActive = true 
+                    hrp.Velocity = Vector3.new(0,-20,0) -- Força a queda pro Touched contar
+                    
+                    StatusRob.Text = "Status: Delivering bags..."
+                    task.wait(2) 
+                    noclipActive = false
                 end
             else
                 StatusRob.Text = "Status: Waiting for Drop-off..."; task.wait(1)
@@ -1003,7 +1036,7 @@ task.spawn(function()
                             foundATM = true
                             StatusRob.Text = "Status: Moving to target..."
                             
-                            local safePos = targetPos + Vector3.new(0, 2.5, 0) 
+                            local safePos = targetPos + Vector3.new(0, 3, 0) 
                             moveToTarget(safePos)
                             
                             if not _G.AutoRob then break end
@@ -1012,13 +1045,19 @@ task.spawn(function()
                                 
                                 hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z))
                                 
-                                hrp.Anchored = false; noclipActive = false; hrp.Velocity = Vector3.new(0,0,0)
-                                if hum then hum:ChangeState(Enum.HumanoidStateType.Landed); hum.WalkSpeed = 16; hum.JumpPower = 50 end
+                                hrp.Anchored = true; 
+                                noclipActive = true; 
+                                hrp.Velocity = Vector3.new(0,0,0)
+                                if hum then hum.WalkSpeed = 0; hum.JumpPower = 0 end
                                 
-                                task.wait(1) 
-                                StatusRob.Text = "Status: Freezing and Robbing..."
-                                hrp.Anchored = true; if hum then hum.WalkSpeed = 0; hum.JumpPower = 0 end
                                 task.wait(0.5) 
+                                StatusRob.Text = "Status: Freezing and Robbing..."
+
+                                -- Burlando a necessidade de visão da caixa
+                                local originalView = prompt.RequiresLineOfSight
+                                local originalDist = prompt.MaxActivationDistance
+                                prompt.RequiresLineOfSight = false
+                                prompt.MaxActivationDistance = 50 
 
                                 -- NOVA LÓGICA DE ROUBO: Segura E e checa inventário
                                 local robStartTime = tick()
@@ -1037,6 +1076,10 @@ task.spawn(function()
                                 end
 
                                 pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) end)
+                                
+                                -- Restaura a caixa ao normal
+                                prompt.RequiresLineOfSight = originalView
+                                prompt.MaxActivationDistance = originalDist
 
                                 if hum then hum.WalkSpeed = 16; hum.JumpPower = 50 end
                                 
