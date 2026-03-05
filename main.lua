@@ -1,6 +1,6 @@
 -- ==========================================================
 -- SISTEMA DE KEY - PLATOBOOST (PARADOX DRIVING EMPIRE)
--- BLINDAGEM MÁXIMA PARA DELTA MOBILE
+-- OTIMIZADO PARA EXECUTORES MOBILE (DELTA)
 -- ==========================================================
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
@@ -86,7 +86,6 @@ MainFrame.InputChanged:Connect(function(input)
 end)
 UserInputService.InputChanged:Connect(function(input) if input == dragInput and dragging then update(input) end end)
 
-
 -- ==========================================================
 -- 2. FUNÇÃO DO SEU SCRIPT PRINCIPAL
 -- ==========================================================
@@ -95,7 +94,6 @@ local function StartMainScript()
     if ScreenGui then ScreenGui:Destroy() end
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Willianz4z4/Scriparadoxall/main/main.lua"))()
 end
-
 
 -- ==========================================================
 -- 3. MOTOR DO PLATOBOOST (CRIPTOGRAFIA)
@@ -107,7 +105,6 @@ local service = 21678;
 local secret = "5e3a0b7b-0ff5-42ba-88e2-c58c9d328cd7";  
 local useNonce = true;  
 
--- Conecta as mensagens na nossa interface
 local onMessage = function(message) 
     if StatusText then
         StatusText.Text = tostring(message)
@@ -116,61 +113,35 @@ local onMessage = function(message)
 end;
 
 -- ==========================================================
--- SISTEMA DE INTERNET BLINDADO (NOVO)
+-- INTERNET LIMPA E DIRETA PARA DELTA
 -- ==========================================================
 local function SafeRequest(options)
-    local reqFunc = request or http_request or (syn and syn.request) or (http and http.request)
-    
-    if not options.Headers then options.Headers = {} end
-    options.Headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-    
-    -- Tenta via request normal
+    local reqFunc = request or http_request or (syn and syn.request)
     if reqFunc then
         local ok, res = pcall(function() return reqFunc(options) end)
-        if ok and type(res) == "table" and res.StatusCode then 
+        if ok and type(res) == "table" then 
             return res 
         end
     end
-    
-    -- Força passagem via funções nativas do Roblox se o executor travar
-    if options.Method == "GET" then
-        local ok, res = pcall(function() return game:HttpGet(options.Url) end)
-        if ok and type(res) == "string" then return { StatusCode = 200, Body = res } end
-    elseif options.Method == "POST" then
-        local ok, res = pcall(function() return game:HttpPost(options.Url, options.Body or "", "application/json") end)
-        if ok and type(res) == "string" then return { StatusCode = 200, Body = res } end
-    end
-    
-    return { StatusCode = 0, Body = '{"success":false,"message":"Falha de conexão com a API do Platoboost."}' }
+    -- Retorna erro se o Delta travar a requisição
+    return { StatusCode = 500, Body = '{"success":false,"message":"Erro no executor. Use um executor atualizado."}' }
 end
 
--- ==========================================================
--- SISTEMA DE HWID A PROVA DE ERROS
--- ==========================================================
 local function getSafeHwid()
-    local hwid = ""
     local ok, result = pcall(function()
         if gethwid then return tostring(gethwid()) end
         return tostring(game:GetService("RbxAnalyticsService"):GetClientId())
     end)
     if ok and result and result ~= "" then
-        hwid = result
-    else
-        hwid = tostring(game:GetService("Players").LocalPlayer.UserId)
+        return result
     end
-    return hwid
+    return tostring(game:GetService("Players").LocalPlayer.UserId)
 end
 
 local fSetClipboard = setclipboard or toclipboard
 local fStringChar, fToString, fStringSub, fOsTime, fMathRandom, fMathFloor = string.char, tostring, string.sub, os.time, math.random, math.floor
 local cachedLink, cachedTime = "", 0;
 local host = "https://api.platoboost.com";
-
--- Verifica conectividade com Platoboost
-local hostResponse = SafeRequest({ Url = host .. "/public/connectivity", Method = "GET" });
-if hostResponse.StatusCode ~= 200 and hostResponse.StatusCode ~= 429 then
-    host = "https://api.platoboost.net";
-end
 
 function cacheLink()
     if cachedTime + (10*60) < fOsTime() then
@@ -191,7 +162,7 @@ function cacheLink()
         elseif response.StatusCode == 429 then
             onMessage("Muitas tentativas. Aguarde 20 segundos."); return false, "Limite";
         end
-        onMessage("Ocorreu um erro ao gerar o link."); return false, "Falha";
+        onMessage("Ocorreu um erro ao gerar o link. O servidor falhou."); return false, "Falha";
     else
         return true, cachedLink;
     end
@@ -222,11 +193,11 @@ local redeemKey = function(key)
         else
             if fStringSub(decoded.message or "", 1, 27) == "unique constraint violation" then
                 onMessage("Você já possui uma key ativa."); return false;
-            else onMessage(decoded.message or "Erro."); return false; end
+            else onMessage(decoded.message or "Erro de verificação."); return false; end
         end
     elseif response.StatusCode == 429 then
         onMessage("Limite excedido. Aguarde 20 segundos."); return false;
-    else onMessage("O servidor retornou um erro."); return false; end
+    else onMessage("O servidor Platoboost retornou erro."); return false; end
 end
 
 local verifyKey = function(key)
@@ -251,7 +222,7 @@ local verifyKey = function(key)
         else onMessage(decodeOk and decoded.message or "Erro nos dados recebidos."); return false; end
     elseif response.StatusCode == 429 then
         onMessage("Limite excedido. Aguarde 20 segundos."); return false;
-    else onMessage("Falha ao se conectar com a internet."); return false; end
+    else onMessage("Falha de conexão. O executor não carregou os dados."); return false; end
 end
 
 -- ==========================================================
