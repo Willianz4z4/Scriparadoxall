@@ -93,11 +93,16 @@ UserInputService.InputChanged:Connect(function(input) if input == dragInput and 
 local function StartMainScript()
     print("✅ [PARADOX] Key validada no Platoboost com sucesso!")
     if ScreenGui then ScreenGui:Destroy() end
-    -- Modificado para carregar o arquivo local
-    if isfile and isfile("driving.lua") then
-        loadstring(readfile("driving.lua"))()
-    else
-        warn("Arquivo 'driving.lua' não foi encontrado na pasta do seu executor!")
+    
+    -- Aqui está o seu link convertido para RAW direto do GitHub:
+    local myScriptUrl = "https://raw.githubusercontent.com/Willianz4z4/Scriparadoxall/main/driving.lua"
+    
+    local success, err = pcall(function()
+        loadstring(game:HttpGet(myScriptUrl))()
+    end)
+    
+    if not success then
+        warn("Erro ao tentar carregar o script do GitHub: " .. tostring(err))
     end
 end
 
