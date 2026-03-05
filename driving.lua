@@ -73,7 +73,7 @@ end
 -- ==========================================
 -- CONFIGURATION SYSTEM (AUTO-RESUME)
 -- ==========================================
-local configName = "Willian_DE_Config_v01.json"
+local configName = "Willian_DE_Config_v02.json"
 
 local function saveConfig()
     if writefile then
@@ -138,7 +138,7 @@ local function serverHop()
 end
 
 -- ==========================================
--- 1. GUI CLONER (PROFIT TRACKER)
+-- GUI CLONER (PROFIT TRACKER)
 -- ==========================================
 local function setupClonedGUI()
     if profitFrameClone then profitFrameClone:Destroy() end
@@ -228,7 +228,7 @@ local function applyStroke(instance, color, thickness)
 end
 
 -- ==========================================
--- 2. PREMIUM HUB INTERFACE
+-- PREMIUM HUB INTERFACE
 -- ==========================================
 if CoreGui:FindFirstChild("DrivingEmpireRob") then CoreGui.DrivingEmpireRob:Destroy() end
 
@@ -257,7 +257,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -40, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "DRIVING EMPIRE HUB 0.1v | " .. string.upper(UserRole)
+Title.Text = "DRIVING EMPIRE HUB 0.2v | " .. string.upper(UserRole)
 Title.TextColor3 = Color3.fromRGB(0, 255, 120) 
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 13
@@ -430,8 +430,8 @@ SpeedTitle.Parent = RobPage
 
 local SafeBtn = Instance.new("TextButton"); SafeBtn.Size = UDim2.new(0.28, 0, 0, 30); SafeBtn.Position = UDim2.new(0.05, 0, 0, 170); SafeBtn.BackgroundColor3 = Color3.fromRGB(30, 150, 60); SafeBtn.Text = "SAFE"; SafeBtn.TextColor3 = Color3.fromRGB(255, 255, 255); SafeBtn.Font = Enum.Font.GothamBold; applyCorner(SafeBtn, 6); SafeBtn.Parent = RobPage
 local FastBtn = Instance.new("TextButton"); FastBtn.Size = UDim2.new(0.28, 0, 0, 30); FastBtn.Position = UDim2.new(0.36, 0, 0, 170); FastBtn.BackgroundColor3 = Color3.fromRGB(200, 120, 0); FastBtn.Text = "FAST"; FastBtn.TextColor3 = Color3.fromRGB(255, 255, 255); FastBtn.Font = Enum.Font.GothamBold; applyCorner(FastBtn, 6); FastBtn.Parent = RobPage
-
 local InsaneBtn = Instance.new("TextButton"); InsaneBtn.Size = UDim2.new(0.28, 0, 0, 30); InsaneBtn.Position = UDim2.new(0.67, 0, 0, 170); 
+
 if UserRole == "Premium" or UserRole == "Partner" then
     InsaneBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 else
@@ -561,7 +561,7 @@ TabConfigBtn.MouseButton1Click:Connect(function() switchTab("Config") end)
 switchTab("Rewards") 
 
 -- ==========================================
--- BUTTON EVENTS
+-- CORE FUNCTIONS & STATE RESETS
 -- ==========================================
 local function resetCharacterState()
     noclipActive = false
@@ -632,7 +632,6 @@ end)
 
 SafeBtn.MouseButton1Click:Connect(function() _G.FarmSpeed = 80; SpeedTitle.Text = "Speed (Current: SAFE)" end)
 FastBtn.MouseButton1Click:Connect(function() _G.FarmSpeed = 150; SpeedTitle.Text = "Speed (Current: FAST)" end)
-
 InsaneBtn.MouseButton1Click:Connect(function() 
     if UserRole == "Premium" or UserRole == "Partner" then
         _G.FarmSpeed = 9999; 
@@ -676,10 +675,8 @@ ToggleHopBtn.MouseButton1Click:Connect(function()
         task.spawn(notifyPremium, ToggleHopBtn, "🔄 AUTO SERVER HOP [OFF] [👑]", Color3.fromRGB(80, 80, 80))
         return
     end
-
     _G.AutoHop = not _G.AutoHop
     saveConfig() 
-
     if _G.AutoHop then
         ToggleHopBtn.Text = "🔄 AUTO SERVER HOP [ON] [👑]"
         ToggleHopBtn.BackgroundColor3 = Color3.fromRGB(30, 180, 60)
@@ -689,7 +686,9 @@ ToggleHopBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- CAMERA FIX
+-- ==========================================
+-- ENGINE SYSTEMS (CAMERA, NOCLIP & MOVEMENT)
+-- ==========================================
 RunService.RenderStepped:Connect(function()
     if (_G.AutoRob or _G.AutoPolice) and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = lp.Character.HumanoidRootPart
@@ -709,7 +708,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- NOCLIP LIVRE: Apenas desliga a colisão, não mexe mais na velocidade (Velocity)
 RunService.Stepped:Connect(function()
     if noclipActive and lp.Character then
         for _, part in pairs(lp.Character:GetDescendants()) do
@@ -718,25 +716,20 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- ==========================================
--- MOVEMENT SYSTEM (MOTOR FÍSICO / ARRASTAR)
--- ==========================================
 local function moveToTarget(finalDest)
     local char = lp.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
     if not hrp or not hum then return false end
-    
-    -- Joga pra fora do carro antes de voar pra física não te puxar de volta
+
     if hum.SeatPart then
         hum.Sit = false
         task.wait(0.2)
     end
 
     noclipActive = true
-    hrp.Anchored = false -- NUNCA ancorar, o servidor precisa entender que você está solto!
-    
-    -- Cria um "Motor Físico" no boneco
+    hrp.Anchored = false 
+
     local bodyVelocity = Instance.new("BodyVelocity")
     bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
     bodyVelocity.P = 1250
@@ -744,26 +737,21 @@ local function moveToTarget(finalDest)
 
     while _G.AutoRob or _G.AutoPolice do
         local dist = (hrp.Position - finalDest).Magnitude
-        if dist < 4 then break end -- Chegou perto o suficiente
-        
-        -- Calcula a direção e puxa o boneco usando a velocidade escolhida
+        if dist < 4 then break end 
+
         local direction = (finalDest - hrp.Position).Unit
         bodyVelocity.Velocity = direction * _G.FarmSpeed
-        
-        -- Faz o boneco olhar pra onde tá indo
         hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(finalDest.X, hrp.Position.Y, finalDest.Z))
-        
         RunService.Heartbeat:Wait()
     end
-    
-    -- Destrói o motor e freia o boneco ao chegar
+
     bodyVelocity:Destroy()
     hrp.Velocity = Vector3.new(0, 0, 0)
     return true
 end
 
 -- ==========================================
--- AUTO POLICE LOGIC 
+-- AUTO POLICE MAIN LOOP
 -- ==========================================
 if _G.AutoPolice then
     task.spawn(function()
@@ -789,7 +777,7 @@ task.spawn(function()
         end
 
         if targetCriminal and targetCriminal.Character and targetCriminal.Character:FindFirstChild("HumanoidRootPart") then
-            if StatusPolice then StatusPolice.Text = "Status: Approaching target from afar (80m)..." end
+            if StatusPolice then StatusPolice.Text = "Status: Approaching criminal..." end
             if targetCriminal.Character:FindFirstChild("Humanoid") then workspace.CurrentCamera.CameraSubject = targetCriminal.Character.Humanoid end
 
             noclipActive = false
@@ -800,10 +788,12 @@ task.spawn(function()
                 hrp.Anchored = false
                 hum.WalkSpeed = _G.FarmSpeed
 
-                local targetCF = targetCriminal.Character.HumanoidRootPart.CFrame
-                local farCF = targetCF * CFrame.new(0, 0, 80)
+                -- [MUDANÇA 1]: Distância de aproximação mais curta (15 studs, perto o suficiente)
+                local targetHRP = targetCriminal.Character.HumanoidRootPart
+                local targetCF = targetHRP.CFrame
+                local closerCF = targetCF * CFrame.new(0, 0, 15)
 
-                hrp.CFrame = CFrame.new(farCF.X, targetCF.Position.Y + 5, farCF.Z)
+                hrp.CFrame = CFrame.new(closerCF.X, targetCF.Position.Y + 2, closerCF.Z)
                 task.wait(0.3) 
 
                 local startRunTime = tick()
@@ -811,7 +801,7 @@ task.spawn(function()
                     if not (targetCriminal.Backpack:FindFirstChild("CriminalMoneyBag") or targetCriminal.Character:FindFirstChild("CriminalMoneyBag")) then break end
 
                     if targetCriminal.Character and targetCriminal.Character:FindFirstChild("HumanoidRootPart") then
-                        if (hrp.Position - targetCriminal.Character.HumanoidRootPart.Position).Magnitude < 15 then break end 
+                        if (hrp.Position - targetCriminal.Character.HumanoidRootPart.Position).Magnitude < 10 then break end 
                         hum:MoveTo(targetCriminal.Character.HumanoidRootPart.Position)
                     end
                     task.wait(0.1)
@@ -830,10 +820,7 @@ task.spawn(function()
 
             while _G.AutoPolice and targetCriminal and targetCriminal.Character and targetCriminal.Character:FindFirstChild("HumanoidRootPart") do
                 local timeElapsed = tick() - lockStartTime
-                if timeElapsed > 25 then
-                    if StatusPolice then StatusPolice.Text = "Status: Timeout (25s). Restarting approach..." end
-                    break 
-                end
+                if timeElapsed > 25 then break end
                 if timeElapsed > 14 then isPredicting = true end
 
                 local stillHasBag = false
@@ -846,10 +833,7 @@ task.spawn(function()
                     local targetHRP = targetCriminal.Character.HumanoidRootPart
                     local targetPos = targetHRP.Position
 
-                    if isPredicting then
-                        if StatusPolice then StatusPolice.Text = "Status: 14s passed. Predicting Ping..." end
-                        targetPos = targetPos + (targetHRP.Velocity * 0.4) 
-                    end
+                    if isPredicting then targetPos = targetPos + (targetHRP.Velocity * 0.4) end
 
                     local radius = isPredicting and 8 or 6 
                     local orbitSpeed = isPredicting and 6 or 4 
@@ -858,7 +842,7 @@ task.spawn(function()
                     local offsetZ = math.sin(math.rad(orbitAngle)) * radius
 
                     local newPosition = targetPos + Vector3.new(offsetX, 0, offsetZ)
-                    
+
                     lp.Character.HumanoidRootPart.CFrame = CFrame.new(newPosition, targetHRP.Position)
                     lp.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0) 
 
@@ -911,7 +895,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- AUTO ROB LOGIC 
+-- AUTO ROB MAIN LOOP
 -- ==========================================
 task.spawn(function()
     while task.wait(1) do
@@ -935,7 +919,7 @@ task.spawn(function()
                 StatusRob.Text = "Status: Dropping off money at base..."
                 moveToTarget(dropOffPoint.Position + Vector3.new(0, 3, 0))
                 if not _G.AutoRob then continue end
-                
+
                 if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = lp.Character.HumanoidRootPart
                     noclipActive = false 
@@ -960,34 +944,38 @@ task.spawn(function()
                             tempObj = tempObj.Parent
                         end
                     end
+                    
                     if isATM and atmModel then
-                        local targetPos = nil
+                        local targetCFrame = nil
                         pcall(function()
-                            local positionPart = atmModel:FindFirstChild("Position", true)
-                            if positionPart and positionPart:IsA("BasePart") then targetPos = positionPart.Position
-                            elseif prompt.Parent:IsA("BasePart") then targetPos = prompt.Parent.Position
-                            else targetPos = atmModel:GetPivot().Position end
+                            if atmModel:FindFirstChild("Position", true) and atmModel:FindFirstChild("Position", true):IsA("BasePart") then
+                                targetCFrame = atmModel:FindFirstChild("Position", true).CFrame
+                            elseif prompt.Parent:IsA("BasePart") then 
+                                targetCFrame = prompt.Parent.CFrame
+                            else 
+                                targetCFrame = atmModel:GetPivot() 
+                            end
                         end)
-                        
-                        if targetPos then 
+
+                        if targetCFrame then 
                             foundATM = true
                             StatusRob.Text = "Status: Moving to target..."
-                            
-                            -- Vai parar do ladinho da caixa (não em cima dela)
-                            local safePos = targetPos + Vector3.new(3, 1.5, 3) 
+
+                            -- [MUDANÇA 2]: Calcula a posição 4 studs NA FRENTE do caixa
+                            local safePos = targetCFrame.Position + (targetCFrame.LookVector * 4) 
                             moveToTarget(safePos)
-                            
+
                             if not _G.AutoRob then break end
                             if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
                                 local hrp = lp.Character.HumanoidRootPart; local hum = lp.Character:FindFirstChild("Humanoid")
-                                
+
                                 hrp.Anchored = true; 
                                 noclipActive = true; 
                                 hrp.Velocity = Vector3.new(0,0,0)
                                 if hum then hum.WalkSpeed = 0; hum.JumpPower = 0 end
-                                
+
                                 task.wait(0.5) 
-                                StatusRob.Text = "Status: Freezing and Robbing..."
+                                StatusRob.Text = "Status: Using [E] to Rob..."
 
                                 local originalView = prompt.RequiresLineOfSight
                                 local originalDist = prompt.MaxActivationDistance
@@ -996,26 +984,28 @@ task.spawn(function()
 
                                 local robStartTime = tick()
                                 local gotBag = false
-                                
+
+                                -- [MUDANÇA 3]: Segura a tecla E fisicamente enquanto rouba
                                 pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game) end)
 
                                 while tick() - robStartTime < 15 do 
                                     if not _G.AutoRob then break end
-                                    
+
                                     if lp.Character and lp.Character:FindFirstChildOfClass("Tool") then gotBag = true; break end
                                     if lp.Backpack and lp.Backpack:FindFirstChildOfClass("Tool") then gotBag = true; break end
-                                    
+
                                     if fireproximityprompt then fireproximityprompt(prompt, 1) end
                                     task.wait(0.1)
                                 end
 
+                                -- Solta a tecla E após conseguir a mala
                                 pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) end)
-                                
+
                                 prompt.RequiresLineOfSight = originalView
                                 prompt.MaxActivationDistance = originalDist
 
                                 if hum then hum.WalkSpeed = 16; hum.JumpPower = 50 end
-                                
+
                                 if gotBag then
                                     StatusRob.Text = "Status: Bag Acquired!"
                                 else
