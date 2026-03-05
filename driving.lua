@@ -730,7 +730,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- NOCLIP LOOP APRIMORADO (Bloqueia acúmulo de velocidade e colisões)
+-- NOCLIP LOOP APRIMORADO (Bloqueia acúmulo de velocidade e colisões perfeitamente)
 RunService.Stepped:Connect(function()
     if noclipActive and lp.Character then
         for _, part in pairs(lp.Character:GetDescendants()) do
@@ -753,7 +753,7 @@ local function moveToTarget(finalDest)
     local hum = char and char:FindFirstChild("Humanoid")
     if not hrp then return false end
     
-    -- Joga pra fora do carro antes de teleportar pra não bugar
+    -- Joga pra fora do carro antes de voar pra não bugar a física
     if hum and hum.SeatPart then
         hum.Sit = false
         task.wait(0.2)
@@ -970,7 +970,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- AUTO ROB LOGIC (INVENTORY CHECK INCLUDED)
+-- AUTO ROB LOGIC (CORREÇÃO LIMBO + CHECK INVENTÁRIO)
 -- ==========================================
 task.spawn(function()
     while task.wait(1) do
@@ -993,19 +993,19 @@ task.spawn(function()
             if dropOffPoint then
                 StatusRob.Text = "Status: Dropping off money at base..."
                 
-                -- Cai direto na base para acionar a zona corretamente
                 moveToTarget(dropOffPoint.Position + Vector3.new(0, 3, 0))
                 if not _G.AutoRob then continue end
                 
                 if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = lp.Character.HumanoidRootPart
+                    
+                    -- Desliga o Noclip pra garantir a colisão com a base e NÃO cair no Limbo
+                    noclipActive = false 
                     hrp.Anchored = false
-                    noclipActive = true 
-                    hrp.Velocity = Vector3.new(0,-20,0) -- Força a queda pro Touched contar
+                    hrp.Velocity = Vector3.new(0,-10,0) 
                     
                     StatusRob.Text = "Status: Delivering bags..."
                     task.wait(2) 
-                    noclipActive = false
                 end
             else
                 StatusRob.Text = "Status: Waiting for Drop-off..."; task.wait(1)
@@ -1036,14 +1036,19 @@ task.spawn(function()
                             foundATM = true
                             StatusRob.Text = "Status: Moving to target..."
                             
-                            local safePos = targetPos + Vector3.new(0, 3, 0) 
+                            -- Offset para não parar exatamente em cima e bugar o CFrame (Limbo)
+                            local safePos = targetPos + Vector3.new(2, 2, 2) 
                             moveToTarget(safePos)
                             
                             if not _G.AutoRob then break end
                             if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
                                 local hrp = lp.Character.HumanoidRootPart; local hum = lp.Character:FindFirstChild("Humanoid")
                                 
-                                hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z))
+                                -- Proteção Anti-NaN (Limbo) na hora de virar pro cofre
+                                local lookAtPos = Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z)
+                                if (hrp.Position - lookAtPos).Magnitude > 0.1 then
+                                    hrp.CFrame = CFrame.new(hrp.Position, lookAtPos)
+                                end
                                 
                                 hrp.Anchored = true; 
                                 noclipActive = true; 
@@ -1053,19 +1058,17 @@ task.spawn(function()
                                 task.wait(0.5) 
                                 StatusRob.Text = "Status: Freezing and Robbing..."
 
-                                -- Burlando a necessidade de visão da caixa
                                 local originalView = prompt.RequiresLineOfSight
                                 local originalDist = prompt.MaxActivationDistance
                                 prompt.RequiresLineOfSight = false
                                 prompt.MaxActivationDistance = 50 
 
-                                -- NOVA LÓGICA DE ROUBO: Segura E e checa inventário
                                 local robStartTime = tick()
                                 local gotBag = false
                                 
                                 pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game) end)
 
-                                while tick() - robStartTime < 15 do -- Timeout máximo de 15 segundos
+                                while tick() - robStartTime < 15 do 
                                     if not _G.AutoRob then break end
                                     
                                     if lp.Character and lp.Character:FindFirstChildOfClass("Tool") then gotBag = true; break end
@@ -1077,7 +1080,6 @@ task.spawn(function()
 
                                 pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) end)
                                 
-                                -- Restaura a caixa ao normal
                                 prompt.RequiresLineOfSight = originalView
                                 prompt.MaxActivationDistance = originalDist
 
