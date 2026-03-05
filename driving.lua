@@ -91,10 +91,7 @@ local function loadConfig()
         pcall(function()
             local data = HttpService:JSONDecode(readfile(configName))
             if data then
-                -- Auto Police é Free, então todo mundo carrega
                 _G.AutoPolice = data.AutoPolice or false
-                
-                -- Auto Hop é Premium
                 if UserRole == "Premium" or UserRole == "Partner" then
                     _G.AutoHop = data.AutoHop or false
                 else
@@ -438,17 +435,16 @@ SpeedTitle.Parent = RobPage
 local SafeBtn = Instance.new("TextButton"); SafeBtn.Size = UDim2.new(0.28, 0, 0, 30); SafeBtn.Position = UDim2.new(0.05, 0, 0, 170); SafeBtn.BackgroundColor3 = Color3.fromRGB(30, 150, 60); SafeBtn.Text = "SAFE"; SafeBtn.TextColor3 = Color3.fromRGB(255, 255, 255); SafeBtn.Font = Enum.Font.GothamBold; applyCorner(SafeBtn, 6); SafeBtn.Parent = RobPage
 local FastBtn = Instance.new("TextButton"); FastBtn.Size = UDim2.new(0.28, 0, 0, 30); FastBtn.Position = UDim2.new(0.36, 0, 0, 170); FastBtn.BackgroundColor3 = Color3.fromRGB(200, 120, 0); FastBtn.Text = "FAST"; FastBtn.TextColor3 = Color3.fromRGB(255, 255, 255); FastBtn.Font = Enum.Font.GothamBold; applyCorner(FastBtn, 6); FastBtn.Parent = RobPage
 
--- MAX TP agora é restrito ao Premium
 local InsaneBtn = Instance.new("TextButton"); InsaneBtn.Size = UDim2.new(0.28, 0, 0, 30); InsaneBtn.Position = UDim2.new(0.67, 0, 0, 170); 
 if UserRole == "Premium" or UserRole == "Partner" then
     InsaneBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 else
-    InsaneBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80) -- Cinza para os Free
+    InsaneBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80) 
 end
 InsaneBtn.Text = "MAX TP [👑]"; InsaneBtn.TextColor3 = Color3.fromRGB(255, 255, 255); InsaneBtn.Font = Enum.Font.GothamBold; applyCorner(InsaneBtn, 6); InsaneBtn.Parent = RobPage
 
 -- ==========================================
--- PAGE 3: AUTO POLICE (MIXED: FREE / PREMIUM)
+-- PAGE 3: AUTO POLICE 
 -- ==========================================
 local PolicePage = createPage("PolicePage")
 local PoliceTitle = createTitle(PolicePage, "🚓 Auto Police Mode")
@@ -462,7 +458,6 @@ PoliceImage.Parent = PolicePage
 
 local StatusPolice = createStatus(PolicePage)
 
--- HUNT CRIMINALS AGORA É FREE PARA TODOS
 local TogglePoliceBtn = Instance.new("TextButton")
 TogglePoliceBtn.Size = UDim2.new(0.9, 0, 0, 40)
 TogglePoliceBtn.Position = UDim2.new(0.05, 0, 0, 90)
@@ -474,7 +469,6 @@ TogglePoliceBtn.TextSize = 14
 applyCorner(TogglePoliceBtn, 8)
 TogglePoliceBtn.Parent = PolicePage
 
--- AUTO HOP AINDA É PREMIUM
 local ToggleHopBtn = Instance.new("TextButton")
 ToggleHopBtn.Size = UDim2.new(0.9, 0, 0, 40)
 ToggleHopBtn.Position = UDim2.new(0.05, 0, 0, 140)
@@ -505,7 +499,6 @@ end
 local ConfigPage = createPage("ConfigPage")
 local ConfigTitle = createTitle(ConfigPage, "🛠️ Settings")
 
--- DISCORD BUTTON
 local DiscordBtn = Instance.new("TextButton")
 DiscordBtn.Size = UDim2.new(0.9, 0, 0, 45)
 DiscordBtn.Position = UDim2.new(0.05, 0, 0, 60)
@@ -591,7 +584,6 @@ local function resetCharacterState()
     end
 end
 
--- AUTO REWARDS LOGIC
 RunRewardsBtn.MouseButton1Click:Connect(function()
     if rewardLoopActive then return end 
     rewardLoopActive = true
@@ -637,7 +629,6 @@ RunRewardsBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
--- AUTO ROB TOGGLE
 ToggleRobBtn.MouseButton1Click:Connect(function()
     _G.AutoRob = not _G.AutoRob
     if _G.AutoRob then
@@ -657,11 +648,9 @@ ToggleRobBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- SPEED BUTTONS
 SafeBtn.MouseButton1Click:Connect(function() _G.FarmSpeed = 80; SpeedTitle.Text = "Speed (Current: SAFE)" end)
 FastBtn.MouseButton1Click:Connect(function() _G.FarmSpeed = 150; SpeedTitle.Text = "Speed (Current: FAST)" end)
 
--- Insane Btn (MAX TP) - Bloqueado pelo Premium
 InsaneBtn.MouseButton1Click:Connect(function() 
     if UserRole == "Premium" or UserRole == "Partner" then
         _G.FarmSpeed = 9999; 
@@ -671,7 +660,6 @@ InsaneBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- AUTO POLICE TOGGLE (AGORA É FREE)
 TogglePoliceBtn.MouseButton1Click:Connect(function()
     _G.AutoPolice = not _G.AutoPolice
     saveConfig() 
@@ -705,7 +693,6 @@ TogglePoliceBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- AUTO HOP TOGGLE (PREMIUM LOCK)
 ToggleHopBtn.MouseButton1Click:Connect(function()
     if UserRole ~= "Premium" and UserRole ~= "Partner" then
         task.spawn(notifyPremium, ToggleHopBtn, "🔄 AUTO SERVER HOP [OFF] [👑]", Color3.fromRGB(80, 80, 80))
@@ -724,7 +711,6 @@ ToggleHopBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- CAMERA FIX FOR AUTO ROB / POLICE
 RunService.RenderStepped:Connect(function()
     if (_G.AutoRob or _G.AutoPolice) and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = lp.Character.HumanoidRootPart
@@ -744,7 +730,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- NOCLIP LOOP
 RunService.Stepped:Connect(function()
     if noclipActive and lp.Character then
         for _, part in pairs(lp.Character:GetDescendants()) do
@@ -753,9 +738,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- ==========================================
--- MOVEMENT SYSTEM (AUTO ROB ONLY)
--- ==========================================
 local function moveToTarget(finalDest)
     local char = lp.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -776,7 +758,7 @@ local function moveToTarget(finalDest)
 end
 
 -- ==========================================
--- AUTO POLICE LOGIC (ORBITING & MAGNET)
+-- AUTO POLICE LOGIC (PING PREDICTION INCLUDED)
 -- ==========================================
 if _G.AutoPolice then
     task.spawn(function()
@@ -817,9 +799,7 @@ task.spawn(function()
                 workspace.CurrentCamera.CameraSubject = targetCriminal.Character.Humanoid
             end
 
-            -- ========================================================
             -- PHASE 1: STEALTH APPROACH
-            -- ========================================================
             noclipActive = false
             if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and lp.Character:FindFirstChild("Humanoid") then
                 local hrp = lp.Character.HumanoidRootPart
@@ -848,13 +828,12 @@ task.spawn(function()
                 end
             end
 
-            -- ========================================================
-            -- PHASE 2: ORBITING & PREDATOR LOCK LOOP
-            -- ========================================================
+            -- PHASE 2: ORBITING & PING PREDICTION
             local lastPromptFire = 0
             local lockStartTime = tick() 
             local orbitAngle = 0 
             noclipActive = true 
+            local isPredicting = false
 
             if StatusPolice and _G.AutoPolice and targetCriminal and targetCriminal.Parent then 
                 StatusPolice.Text = "Status: Locked on target: " .. targetCriminal.Name 
@@ -862,9 +841,17 @@ task.spawn(function()
 
             while _G.AutoPolice and targetCriminal and targetCriminal.Character and targetCriminal.Character:FindFirstChild("HumanoidRootPart") do
 
-                if tick() - lockStartTime > 20 then
-                    if StatusPolice then StatusPolice.Text = "Status: Timeout (20s). Restarting approach..." end
+                local timeElapsed = tick() - lockStartTime
+                
+                -- Timeout total aumentou para 25s
+                if timeElapsed > 25 then
+                    if StatusPolice then StatusPolice.Text = "Status: Timeout (25s). Restarting approach..." end
                     break 
+                end
+
+                -- NOVA LÓGICA: Ativa predição após 14s
+                if timeElapsed > 14 then
+                    isPredicting = true
                 end
 
                 local stillHasBag = false
@@ -876,17 +863,25 @@ task.spawn(function()
                 if not stillHasBag then break end 
 
                 if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and lp.Character:FindFirstChild("Humanoid") then
-                    local targetPos = targetCriminal.Character.HumanoidRootPart.Position
+                    local targetHRP = targetCriminal.Character.HumanoidRootPart
+                    local targetPos = targetHRP.Position
 
-                    local radius = 6 
-                    local orbitSpeed = 4 
+                    if isPredicting then
+                        if StatusPolice then StatusPolice.Text = "Status: 14s passed. Predicting Ping..." end
+                        -- Joga a mira para frente baseada na velocidade atual do alvo
+                        targetPos = targetPos + (targetHRP.Velocity * 0.4) 
+                    end
+
+                    -- Se estiver prevendo, a órbita fica um pouco mais larga para não bater e voar longe
+                    local radius = isPredicting and 8 or 6 
+                    local orbitSpeed = isPredicting and 6 or 4 
 
                     local offsetX = math.cos(math.rad(orbitAngle)) * radius
                     local offsetZ = math.sin(math.rad(orbitAngle)) * radius
 
                     local newPosition = targetPos + Vector3.new(offsetX, 0, offsetZ)
 
-                    lp.Character.HumanoidRootPart.CFrame = CFrame.new(newPosition, targetPos)
+                    lp.Character.HumanoidRootPart.CFrame = CFrame.new(newPosition, targetHRP.Position)
                     lp.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0) 
 
                     orbitAngle = orbitAngle + orbitSpeed 
@@ -942,7 +937,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- AUTO ROB LOGIC (OUTLAW WITH 'E' KEYPRESS FIX)
+-- AUTO ROB LOGIC (INVENTORY CHECK INCLUDED)
 -- ==========================================
 task.spawn(function()
     while task.wait(1) do
@@ -950,7 +945,7 @@ task.spawn(function()
 
         local hasBag = false
         if lp.Character and lp.Character:FindFirstChildOfClass("Tool") then hasBag = true
-        elseif lp.Backpack:FindFirstChildOfClass("Tool") then hasBag = true end
+        elseif lp.Backpack and lp.Backpack:FindFirstChildOfClass("Tool") then hasBag = true end
 
         if hasBag then
             StatusRob.Text = "Status: Looking for drop-off point..."
@@ -1025,21 +1020,32 @@ task.spawn(function()
                                 hrp.Anchored = true; if hum then hum.WalkSpeed = 0; hum.JumpPower = 0 end
                                 task.wait(0.5) 
 
-                                local success, err = pcall(function()
-                                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                                    task.wait(prompt.HoldDuration + 0.5) 
-                                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-                                end)
+                                -- NOVA LÓGICA DE ROUBO: Segura E e checa inventário
+                                local robStartTime = tick()
+                                local gotBag = false
+                                
+                                pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game) end)
 
-                                if not success then
-                                    if fireproximityprompt then
-                                        fireproximityprompt(prompt, 1)
-                                        task.wait(prompt.HoldDuration + 0.5)
-                                    end
+                                while tick() - robStartTime < 15 do -- Timeout máximo de 15 segundos
+                                    if not _G.AutoRob then break end
+                                    
+                                    if lp.Character and lp.Character:FindFirstChildOfClass("Tool") then gotBag = true; break end
+                                    if lp.Backpack and lp.Backpack:FindFirstChildOfClass("Tool") then gotBag = true; break end
+                                    
+                                    if fireproximityprompt then fireproximityprompt(prompt, 1) end
+                                    task.wait(0.1)
                                 end
 
+                                pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) end)
+
                                 if hum then hum.WalkSpeed = 16; hum.JumpPower = 50 end
-                                StatusRob.Text = "Status: Bag Acquired!"; task.wait(1.5)
+                                
+                                if gotBag then
+                                    StatusRob.Text = "Status: Bag Acquired!"
+                                else
+                                    StatusRob.Text = "Status: Failed to get bag (Timeout)"
+                                end
+                                task.wait(1.5)
                             end
                             break 
                         end
