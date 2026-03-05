@@ -93,7 +93,12 @@ UserInputService.InputChanged:Connect(function(input) if input == dragInput and 
 local function StartMainScript()
     print("✅ [PARADOX] Key validada no Platoboost com sucesso!")
     if ScreenGui then ScreenGui:Destroy() end
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Willianz4z4/Scriparadoxall/main/main.lua"))()
+    -- Modificado para carregar o arquivo local
+    if isfile and isfile("driving.lua") then
+        loadstring(readfile("driving.lua"))()
+    else
+        warn("Arquivo 'driving.lua' não foi encontrado na pasta do seu executor!")
+    end
 end
 
 
@@ -120,10 +125,10 @@ end;
 -- ==========================================================
 local function SafeRequest(options)
     local reqFunc = request or http_request or (syn and syn.request) or (http and http.request)
-    
+
     if not options.Headers then options.Headers = {} end
     options.Headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-    
+
     -- Tenta via request normal
     if reqFunc then
         local ok, res = pcall(function() return reqFunc(options) end)
@@ -131,7 +136,7 @@ local function SafeRequest(options)
             return res 
         end
     end
-    
+
     -- Força passagem via funções nativas do Roblox se o executor travar
     if options.Method == "GET" then
         local ok, res = pcall(function() return game:HttpGet(options.Url) end)
@@ -140,7 +145,7 @@ local function SafeRequest(options)
         local ok, res = pcall(function() return game:HttpPost(options.Url, options.Body or "", "application/json") end)
         if ok and type(res) == "string" then return { StatusCode = 200, Body = res } end
     end
-    
+
     return { StatusCode = 0, Body = '{"success":false,"message":"Falha de conexão com a API do Platoboost."}' }
 end
 
@@ -208,7 +213,7 @@ local redeemKey = function(key)
     local endpoint = host .. "/public/redeem/" .. fToString(service);
     local body = { identifier = lDigest(getSafeHwid()), key = key }
     if useNonce then body.nonce = nonce; end
-    
+
     local response = SafeRequest({ Url = endpoint, Method = "POST", Body = lEncode(body), Headers = { ["Content-Type"] = "application/json" } });
     if response.StatusCode == 200 then
         local decodeOk, decoded = pcall(function() return lDecode(response.Body) end)
@@ -233,7 +238,7 @@ local verifyKey = function(key)
     local nonce = generateNonce();
     local endpoint = host .. "/public/whitelist/" .. fToString(service) .. "?identifier=" .. lDigest(getSafeHwid()) .. "&key=" .. key;
     if useNonce then endpoint = endpoint .. "&nonce=" .. nonce; end
-    
+
     local response = SafeRequest({ Url = endpoint, Method = "GET" })
 
     if response.StatusCode == 200 then
