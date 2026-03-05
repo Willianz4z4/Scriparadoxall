@@ -6,7 +6,6 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
-local TweenService = game:GetService("TweenService")
 local lp = Players.LocalPlayer
 
 -- ==========================================
@@ -104,7 +103,7 @@ end
 loadConfig()
 
 -- ==========================================
--- SERVER HOP FUNCTION (ALMOST FULL SERVERS)
+-- SERVER HOP FUNCTION
 -- ==========================================
 local function serverHop()
     if UserRole == "Free" then return end
@@ -212,7 +211,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- UI DESIGN FUNCTIONS (CORNERS & STROKES)
+-- UI DESIGN FUNCTIONS 
 -- ==========================================
 local function applyCorner(instance, radius)
     local corner = Instance.new("UICorner")
@@ -379,7 +378,7 @@ local function createStatus(parent)
 end
 
 -- ==========================================
--- PAGE 1: AUTO REWARDS
+-- PAGES SETUP
 -- ==========================================
 local RewardsPage = createPage("RewardsPage")
 local RewardsTitle = createTitle(RewardsPage, "⚙️ General Automations")
@@ -396,9 +395,6 @@ RunRewardsBtn.TextSize = 13
 applyCorner(RunRewardsBtn, 8)
 RunRewardsBtn.Parent = RewardsPage
 
--- ==========================================
--- PAGE 2: AUTO ROB (OUTLAW)
--- ==========================================
 local RobPage = createPage("RobPage")
 local RobTitle = createTitle(RobPage, "💰 Outlaw: Auto Rob")
 
@@ -443,9 +439,6 @@ else
 end
 InsaneBtn.Text = "MAX TP [👑]"; InsaneBtn.TextColor3 = Color3.fromRGB(255, 255, 255); InsaneBtn.Font = Enum.Font.GothamBold; applyCorner(InsaneBtn, 6); InsaneBtn.Parent = RobPage
 
--- ==========================================
--- PAGE 3: AUTO POLICE 
--- ==========================================
 local PolicePage = createPage("PolicePage")
 local PoliceTitle = createTitle(PolicePage, "🚓 Auto Police Mode")
 
@@ -493,9 +486,6 @@ if _G.AutoHop and (UserRole == "Premium" or UserRole == "Partner") then
     ToggleHopBtn.BackgroundColor3 = Color3.fromRGB(30, 180, 60)
 end
 
--- ==========================================
--- PAGE 4: SETTINGS & DISCORD
--- ==========================================
 local ConfigPage = createPage("ConfigPage")
 local ConfigTitle = createTitle(ConfigPage, "🛠️ Settings")
 
@@ -571,7 +561,7 @@ TabConfigBtn.MouseButton1Click:Connect(function() switchTab("Config") end)
 switchTab("Rewards") 
 
 -- ==========================================
--- BUTTON EVENTS & LOGIC
+-- BUTTON EVENTS
 -- ==========================================
 local function resetCharacterState()
     noclipActive = false
@@ -594,29 +584,21 @@ RunRewardsBtn.MouseButton1Click:Connect(function()
         if StatusRewards then StatusRewards.Text = "Status: Initial Collection Complete (1 to 12)..." end
         for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
             if obj.Name == "PlayRewards" and obj:IsA("RemoteEvent") then
-                for i = 1, 12 do
-                    pcall(function() obj:FireServer(i, false) end)
-                    task.wait(0.1)
-                end
+                for i = 1, 12 do pcall(function() obj:FireServer(i, false) end) task.wait(0.1) end
                 break
             end
         end
 
         for cycle = 1, 7 do
             if not rewardLoopActive then break end
-
             if StatusRewards then StatusRewards.Text = "Status: Waiting 5 minutes (Cycle " .. cycle .. "/7)..." end
             task.wait(300) 
-
             if not rewardLoopActive then break end
             if StatusRewards then StatusRewards.Text = "Status: Attempting to claim chests (1 to 7)..." end
 
             for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
                 if obj.Name == "PlayRewards" and obj:IsA("RemoteEvent") then
-                    for i = 1, 7 do
-                        pcall(function() obj:FireServer(i, false) end)
-                        task.wait(0.1)
-                    end
+                    for i = 1, 7 do pcall(function() obj:FireServer(i, false) end) task.wait(0.1) end
                     break
                 end
             end
@@ -670,18 +652,14 @@ TogglePoliceBtn.MouseButton1Click:Connect(function()
             ToggleRobBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
             ToggleRobBtn.Text = "START AUTO ROB [OFF]" 
         end
-
         TogglePoliceBtn.Text = "HUNT CRIMINALS [ON]"
         TogglePoliceBtn.BackgroundColor3 = Color3.fromRGB(30, 180, 60)
         StatusPolice.Text = "Status: Starting Security job..."
 
         pcall(function()
             local remoteJob = ReplicatedStorage:FindFirstChild("RequestStartJobSession", true)
-            if remoteJob and remoteJob:IsA("RemoteEvent") then
-                remoteJob:FireServer("Security", "jobPad")
-            end
+            if remoteJob and remoteJob:IsA("RemoteEvent") then remoteJob:FireServer("Security", "jobPad") end
         end)
-
         task.wait(1)
         StatusPolice.Text = "Status: Scanning players' backpacks..."
     else
@@ -711,6 +689,7 @@ ToggleHopBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- CAMERA FIX
 RunService.RenderStepped:Connect(function()
     if (_G.AutoRob or _G.AutoPolice) and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = lp.Character.HumanoidRootPart
@@ -730,99 +709,79 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- NOCLIP LOOP APRIMORADO (Bloqueia acúmulo de velocidade e colisões perfeitamente)
+-- NOCLIP LIVRE: Apenas desliga a colisão, não mexe mais na velocidade (Velocity)
 RunService.Stepped:Connect(function()
     if noclipActive and lp.Character then
         for _, part in pairs(lp.Character:GetDescendants()) do
             if part:IsA("BasePart") then part.CanCollide = false end
         end
-        local hrp = lp.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            hrp.Velocity = Vector3.new(0, 0, 0)
-            hrp.RotVelocity = Vector3.new(0, 0, 0)
-        end
     end
 end)
 
 -- ==========================================
--- MOVEMENT SYSTEM (ANTI-RUBBERBAND COM TWEEN)
+-- MOVEMENT SYSTEM (MOTOR FÍSICO / ARRASTAR)
 -- ==========================================
 local function moveToTarget(finalDest)
     local char = lp.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
-    if not hrp then return false end
+    if not hrp or not hum then return false end
     
-    -- Joga pra fora do carro antes de voar pra não bugar a física
-    if hum and hum.SeatPart then
+    -- Joga pra fora do carro antes de voar pra física não te puxar de volta
+    if hum.SeatPart then
         hum.Sit = false
         task.wait(0.2)
     end
 
     noclipActive = true
-    hrp.Anchored = true
+    hrp.Anchored = false -- NUNCA ancorar, o servidor precisa entender que você está solto!
     
-    local startPos = hrp.Position
-    local dist = (startPos - finalDest).Magnitude
-    
-    if _G.FarmSpeed > 1000 then 
-        hrp.CFrame = CFrame.new(finalDest)
-        task.wait(0.5) 
-        return true 
+    -- Cria um "Motor Físico" no boneco
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
+    bodyVelocity.P = 1250
+    bodyVelocity.Parent = hrp
+
+    while _G.AutoRob or _G.AutoPolice do
+        local dist = (hrp.Position - finalDest).Magnitude
+        if dist < 4 then break end -- Chegou perto o suficiente
+        
+        -- Calcula a direção e puxa o boneco usando a velocidade escolhida
+        local direction = (finalDest - hrp.Position).Unit
+        bodyVelocity.Velocity = direction * _G.FarmSpeed
+        
+        -- Faz o boneco olhar pra onde tá indo
+        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(finalDest.X, hrp.Position.Y, finalDest.Z))
+        
+        RunService.Heartbeat:Wait()
     end
     
-    local timeToTravel = dist / _G.FarmSpeed
-    local tweenInfo = TweenInfo.new(timeToTravel, Enum.EasingStyle.Linear)
-    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(finalDest)})
-    tween:Play()
-    
-    local reached = false
-    local connection
-    connection = tween.Completed:Connect(function()
-        reached = true
-    end)
-    
-    while not reached do
-        if not _G.AutoRob and not _G.AutoPolice then
-            tween:Cancel()
-            break
-        end
-        task.wait(0.1)
-    end
-    
-    if connection then connection:Disconnect() end
+    -- Destrói o motor e freia o boneco ao chegar
+    bodyVelocity:Destroy()
+    hrp.Velocity = Vector3.new(0, 0, 0)
     return true
 end
 
 -- ==========================================
--- AUTO POLICE LOGIC (PING PREDICTION INCLUDED)
+-- AUTO POLICE LOGIC 
 -- ==========================================
 if _G.AutoPolice then
     task.spawn(function()
         pcall(function()
             local remoteJob = ReplicatedStorage:FindFirstChild("RequestStartJobSession", true)
-            if remoteJob and remoteJob:IsA("RemoteEvent") then
-                remoteJob:FireServer("Security", "jobPad")
-            end
+            if remoteJob and remoteJob:IsA("RemoteEvent") then remoteJob:FireServer("Security", "jobPad") end
         end)
     end)
 end
 
 task.spawn(function()
     while task.wait() do 
-        if not _G.AutoPolice then 
-            task.wait(1) 
-            continue 
-        end
+        if not _G.AutoPolice then task.wait(1) continue end
 
         local targetCriminal = nil
-
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local hasBagInBackpack = p.Backpack and p.Backpack:FindFirstChild("CriminalMoneyBag")
-                local hasBagInHand = p.Character and p.Character:FindFirstChild("CriminalMoneyBag")
-
-                if hasBagInBackpack or hasBagInHand then
+                if p.Backpack and p.Backpack:FindFirstChild("CriminalMoneyBag") or p.Character and p.Character:FindFirstChild("CriminalMoneyBag") then
                     targetCriminal = p
                     break 
                 end
@@ -831,12 +790,8 @@ task.spawn(function()
 
         if targetCriminal and targetCriminal.Character and targetCriminal.Character:FindFirstChild("HumanoidRootPart") then
             if StatusPolice then StatusPolice.Text = "Status: Approaching target from afar (80m)..." end
+            if targetCriminal.Character:FindFirstChild("Humanoid") then workspace.CurrentCamera.CameraSubject = targetCriminal.Character.Humanoid end
 
-            if targetCriminal.Character:FindFirstChild("Humanoid") then
-                workspace.CurrentCamera.CameraSubject = targetCriminal.Character.Humanoid
-            end
-
-            -- PHASE 1: STEALTH APPROACH
             noclipActive = false
             if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and lp.Character:FindFirstChild("Humanoid") then
                 local hrp = lp.Character.HumanoidRootPart
@@ -856,16 +811,13 @@ task.spawn(function()
                     if not (targetCriminal.Backpack:FindFirstChild("CriminalMoneyBag") or targetCriminal.Character:FindFirstChild("CriminalMoneyBag")) then break end
 
                     if targetCriminal.Character and targetCriminal.Character:FindFirstChild("HumanoidRootPart") then
-                        local dist = (hrp.Position - targetCriminal.Character.HumanoidRootPart.Position).Magnitude
-                        if dist < 15 then break end 
-
+                        if (hrp.Position - targetCriminal.Character.HumanoidRootPart.Position).Magnitude < 15 then break end 
                         hum:MoveTo(targetCriminal.Character.HumanoidRootPart.Position)
                     end
                     task.wait(0.1)
                 end
             end
 
-            -- PHASE 2: ORBITING & PING PREDICTION
             local lastPromptFire = 0
             local lockStartTime = tick() 
             local orbitAngle = 0 
@@ -877,23 +829,16 @@ task.spawn(function()
             end
 
             while _G.AutoPolice and targetCriminal and targetCriminal.Character and targetCriminal.Character:FindFirstChild("HumanoidRootPart") do
-
                 local timeElapsed = tick() - lockStartTime
-                
                 if timeElapsed > 25 then
                     if StatusPolice then StatusPolice.Text = "Status: Timeout (25s). Restarting approach..." end
                     break 
                 end
-
-                if timeElapsed > 14 then
-                    isPredicting = true
-                end
+                if timeElapsed > 14 then isPredicting = true end
 
                 local stillHasBag = false
                 pcall(function()
-                    if targetCriminal.Backpack:FindFirstChild("CriminalMoneyBag") or targetCriminal.Character:FindFirstChild("CriminalMoneyBag") then
-                        stillHasBag = true
-                    end
+                    if targetCriminal.Backpack:FindFirstChild("CriminalMoneyBag") or targetCriminal.Character:FindFirstChild("CriminalMoneyBag") then stillHasBag = true end
                 end)
                 if not stillHasBag then break end 
 
@@ -913,7 +858,7 @@ task.spawn(function()
                     local offsetZ = math.sin(math.rad(orbitAngle)) * radius
 
                     local newPosition = targetPos + Vector3.new(offsetX, 0, offsetZ)
-
+                    
                     lp.Character.HumanoidRootPart.CFrame = CFrame.new(newPosition, targetHRP.Position)
                     lp.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0) 
 
@@ -922,7 +867,6 @@ task.spawn(function()
                 end
 
                 local arrestPrompt = targetCriminal.Character:FindFirstChildWhichIsA("ProximityPrompt", true)
-
                 if arrestPrompt and (tick() - lastPromptFire > 0.5) then
                     lastPromptFire = tick()
 
@@ -948,13 +892,10 @@ task.spawn(function()
 
             if StatusPolice then StatusPolice.Text = "Status: Analyzing situation..." end
             task.wait(1)
-
         else
             resetCamera()
             noclipActive = false
-            if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then 
-                lp.Character.HumanoidRootPart.Anchored = false 
-            end
+            if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then lp.Character.HumanoidRootPart.Anchored = false end
 
             if _G.AutoHop then
                 if StatusPolice then StatusPolice.Text = "Status: No bags found. Server Hopping..." end
@@ -970,7 +911,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- AUTO ROB LOGIC (CORREÇÃO LIMBO + CHECK INVENTÁRIO)
+-- AUTO ROB LOGIC 
 -- ==========================================
 task.spawn(function()
     while task.wait(1) do
@@ -992,18 +933,13 @@ task.spawn(function()
 
             if dropOffPoint then
                 StatusRob.Text = "Status: Dropping off money at base..."
-                
                 moveToTarget(dropOffPoint.Position + Vector3.new(0, 3, 0))
                 if not _G.AutoRob then continue end
                 
                 if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = lp.Character.HumanoidRootPart
-                    
-                    -- Desliga o Noclip pra garantir a colisão com a base e NÃO cair no Limbo
                     noclipActive = false 
                     hrp.Anchored = false
-                    hrp.Velocity = Vector3.new(0,-10,0) 
-                    
                     StatusRob.Text = "Status: Delivering bags..."
                     task.wait(2) 
                 end
@@ -1032,23 +968,18 @@ task.spawn(function()
                             elseif prompt.Parent:IsA("BasePart") then targetPos = prompt.Parent.Position
                             else targetPos = atmModel:GetPivot().Position end
                         end)
+                        
                         if targetPos then 
                             foundATM = true
                             StatusRob.Text = "Status: Moving to target..."
                             
-                            -- Offset para não parar exatamente em cima e bugar o CFrame (Limbo)
-                            local safePos = targetPos + Vector3.new(2, 2, 2) 
+                            -- Vai parar do ladinho da caixa (não em cima dela)
+                            local safePos = targetPos + Vector3.new(3, 1.5, 3) 
                             moveToTarget(safePos)
                             
                             if not _G.AutoRob then break end
                             if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
                                 local hrp = lp.Character.HumanoidRootPart; local hum = lp.Character:FindFirstChild("Humanoid")
-                                
-                                -- Proteção Anti-NaN (Limbo) na hora de virar pro cofre
-                                local lookAtPos = Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z)
-                                if (hrp.Position - lookAtPos).Magnitude > 0.1 then
-                                    hrp.CFrame = CFrame.new(hrp.Position, lookAtPos)
-                                end
                                 
                                 hrp.Anchored = true; 
                                 noclipActive = true; 
