@@ -257,7 +257,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -40, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "DRIVING EMPIRE HUB 0.2v | " .. string.upper(UserRole)
+Title.Text = "DRIVING EMPIRE HUB 0.3v | " .. string.upper(UserRole)
 Title.TextColor3 = Color3.fromRGB(0, 255, 120) 
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 13
@@ -788,7 +788,6 @@ task.spawn(function()
                 hrp.Anchored = false
                 hum.WalkSpeed = _G.FarmSpeed
 
-                -- [MUDANÇA 1]: Distância de aproximação mais curta (15 studs, perto o suficiente)
                 local targetHRP = targetCriminal.Character.HumanoidRootPart
                 local targetCF = targetHRP.CFrame
                 local closerCF = targetCF * CFrame.new(0, 0, 15)
@@ -895,17 +894,110 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- AUTO ROB MAIN LOOP
+-- AUTO ROB MAIN LOOP (REVISED LOGIC)
 -- ==========================================
 task.spawn(function()
     while task.wait(1) do
         if not _G.AutoRob then continue end
 
+        -- 1. Verifica se tem mala (só para saber se vai precisar dropar depois)
         local hasBag = false
         if lp.Character and lp.Character:FindFirstChildOfClass("Tool") then hasBag = true
         elseif lp.Backpack and lp.Backpack:FindFirstChildOfClass("Tool") then hasBag = true end
 
-        if hasBag then
+        -- 2. PRIORIDADE MAXIMA: Procura por ATMs disponíveis para roubar primeiro
+        local foundATM = false
+        local targetPrompt = nil
+        local atmModel = nil
+
+        for _, prompt in pairs(workspace:GetDescendants()) do
+            if prompt:IsA("ProximityPrompt") and prompt.Enabled then
+                local isATM = false
+                local tempObj = prompt.Parent
+                local currentModel = nil
+                
+                for i = 1, 5 do
+                    if tempObj then
+                        local folderName = string.lower(tempObj.Name)
+                        if string.find(folderName, "atm") or string.find(folderName, "criminal") then
+                            isATM = true
+                            currentModel = tempObj
+                            break
+                        end
+                        tempObj = tempObj.Parent
+                    end
+                end
+                
+                if isATM and currentModel then
+                    foundATM = true
+                    targetPrompt = prompt
+                    atmModel = currentModel
+                    break -- Achou um caixa pronto pra roubar, foca nele!
+                end
+            end
+        end
+
+        -- 3. Decisão baseada no que foi encontrado
+        if foundATM and targetPrompt and atmModel then
+            -- Tem caixa disponível! Vai roubar (mesmo se já tiver mala)
+            local targetCFrame = nil
+            pcall(function()
+                if atmModel:FindFirstChild("Position", true) and atmModel:FindFirstChild("Position", true):IsA("BasePart") then
+                    targetCFrame = atmModel:FindFirstChild("Position", true).CFrame
+                elseif targetPrompt.Parent:IsA("BasePart") then 
+                    targetCFrame = targetPrompt.Parent.CFrame
+                else 
+                    targetCFrame = atmModel:GetPivot() 
+                end
+            end)
+
+            if targetCFrame then 
+                StatusRob.Text = "Status: Moving to target..."
+                local safePos = targetCFrame.Position + (targetCFrame.LookVector * 4) 
+                moveToTarget(safePos)
+
+                if not _G.AutoRob then break end
+                if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = lp.Character.HumanoidRootPart; local hum = lp.Character:FindFirstChild("Humanoid")
+
+                    hrp.Anchored = true; 
+                    noclipActive = true; 
+                    hrp.Velocity = Vector3.new(0,0,0)
+                    if hum then hum.WalkSpeed = 0; hum.JumpPower = 0 end
+
+                    task.wait(0.5) 
+                    StatusRob.Text = "Status: Using [E] to Rob..."
+
+                    local originalView = targetPrompt.RequiresLineOfSight
+                    local originalDist = targetPrompt.MaxActivationDistance
+                    targetPrompt.RequiresLineOfSight = false
+                    targetPrompt.MaxActivationDistance = 50 
+
+                    local robStartTime = tick()
+
+                    pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game) end)
+
+                    while tick() - robStartTime < 15 do 
+                        if not _G.AutoRob then break end
+                        if not targetPrompt.Enabled then break end -- Se o prompt desativou, o roubo acabou (caixa esvaziado)
+
+                        if fireproximityprompt then fireproximityprompt(targetPrompt, 1) end
+                        task.wait(0.1)
+                    end
+
+                    pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) end)
+
+                    targetPrompt.RequiresLineOfSight = originalView
+                    targetPrompt.MaxActivationDistance = originalDist
+
+                    if hum then hum.WalkSpeed = 16; hum.JumpPower = 50 end
+                    hrp.Anchored = false
+                    task.wait(1.5)
+                end
+            end
+
+        elseif hasBag then
+            -- Não tem mais nenhum caixa disponível, MAS você tem malas! Hora de entregar.
             StatusRob.Text = "Status: Looking for drop-off point..."
             local dropOffPoint = nil
             for _, obj in pairs(workspace:GetDescendants()) do
@@ -930,100 +1022,13 @@ task.spawn(function()
             else
                 StatusRob.Text = "Status: Waiting for Drop-off..."; task.wait(1)
             end
+
         else
-            local foundATM = false
-            for _, prompt in pairs(workspace:GetDescendants()) do
-                if prompt:IsA("ProximityPrompt") and prompt.Enabled then
-                    local isATM = false; local atmModel = nil; local tempObj = prompt.Parent
-                    for i = 1, 5 do
-                        if tempObj then
-                            local folderName = string.lower(tempObj.Name)
-                            if string.find(folderName, "atm") or string.find(folderName, "criminal") then
-                                isATM = true; atmModel = tempObj; break
-                            end
-                            tempObj = tempObj.Parent
-                        end
-                    end
-                    
-                    if isATM and atmModel then
-                        local targetCFrame = nil
-                        pcall(function()
-                            if atmModel:FindFirstChild("Position", true) and atmModel:FindFirstChild("Position", true):IsA("BasePart") then
-                                targetCFrame = atmModel:FindFirstChild("Position", true).CFrame
-                            elseif prompt.Parent:IsA("BasePart") then 
-                                targetCFrame = prompt.Parent.CFrame
-                            else 
-                                targetCFrame = atmModel:GetPivot() 
-                            end
-                        end)
-
-                        if targetCFrame then 
-                            foundATM = true
-                            StatusRob.Text = "Status: Moving to target..."
-
-                            -- [MUDANÇA 2]: Calcula a posição 4 studs NA FRENTE do caixa
-                            local safePos = targetCFrame.Position + (targetCFrame.LookVector * 4) 
-                            moveToTarget(safePos)
-
-                            if not _G.AutoRob then break end
-                            if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-                                local hrp = lp.Character.HumanoidRootPart; local hum = lp.Character:FindFirstChild("Humanoid")
-
-                                hrp.Anchored = true; 
-                                noclipActive = true; 
-                                hrp.Velocity = Vector3.new(0,0,0)
-                                if hum then hum.WalkSpeed = 0; hum.JumpPower = 0 end
-
-                                task.wait(0.5) 
-                                StatusRob.Text = "Status: Using [E] to Rob..."
-
-                                local originalView = prompt.RequiresLineOfSight
-                                local originalDist = prompt.MaxActivationDistance
-                                prompt.RequiresLineOfSight = false
-                                prompt.MaxActivationDistance = 50 
-
-                                local robStartTime = tick()
-                                local gotBag = false
-
-                                -- [MUDANÇA 3]: Segura a tecla E fisicamente enquanto rouba
-                                pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game) end)
-
-                                while tick() - robStartTime < 15 do 
-                                    if not _G.AutoRob then break end
-
-                                    if lp.Character and lp.Character:FindFirstChildOfClass("Tool") then gotBag = true; break end
-                                    if lp.Backpack and lp.Backpack:FindFirstChildOfClass("Tool") then gotBag = true; break end
-
-                                    if fireproximityprompt then fireproximityprompt(prompt, 1) end
-                                    task.wait(0.1)
-                                end
-
-                                -- Solta a tecla E após conseguir a mala
-                                pcall(function() VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) end)
-
-                                prompt.RequiresLineOfSight = originalView
-                                prompt.MaxActivationDistance = originalDist
-
-                                if hum then hum.WalkSpeed = 16; hum.JumpPower = 50 end
-
-                                if gotBag then
-                                    StatusRob.Text = "Status: Bag Acquired!"
-                                else
-                                    StatusRob.Text = "Status: Failed to get bag (Timeout)"
-                                end
-                                task.wait(1.5)
-                            end
-                            break 
-                        end
-                    end
-                end
-            end
-            if not foundATM then
-                noclipActive = false
-                if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then lp.Character.HumanoidRootPart.Anchored = false end
-                StatusRob.Text = "Status: Waiting for ATMs to spawn..."
-                task.wait(1)
-            end
+            -- Não tem caixas para roubar E não tem malas. Apenas aguarda o respawn.
+            noclipActive = false
+            if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then lp.Character.HumanoidRootPart.Anchored = false end
+            StatusRob.Text = "Status: Waiting for ATMs to spawn..."
+            task.wait(1)
         end
     end
 end)
