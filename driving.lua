@@ -900,12 +900,10 @@ task.spawn(function()
     while task.wait(1) do
         if not _G.AutoRob then continue end
 
-        -- 1. Verifica se tem mala (só para saber se vai precisar dropar depois)
         local hasBag = false
         if lp.Character and lp.Character:FindFirstChildOfClass("Tool") then hasBag = true
         elseif lp.Backpack and lp.Backpack:FindFirstChildOfClass("Tool") then hasBag = true end
 
-        -- 2. PRIORIDADE MAXIMA: Procura por ATMs disponíveis para roubar primeiro
         local foundATM = false
         local targetPrompt = nil
         local atmModel = nil
@@ -915,7 +913,7 @@ task.spawn(function()
                 local isATM = false
                 local tempObj = prompt.Parent
                 local currentModel = nil
-                
+
                 for i = 1, 5 do
                     if tempObj then
                         local folderName = string.lower(tempObj.Name)
@@ -927,19 +925,17 @@ task.spawn(function()
                         tempObj = tempObj.Parent
                     end
                 end
-                
+
                 if isATM and currentModel then
                     foundATM = true
                     targetPrompt = prompt
                     atmModel = currentModel
-                    break -- Achou um caixa pronto pra roubar, foca nele!
+                    break 
                 end
             end
         end
 
-        -- 3. Decisão baseada no que foi encontrado
         if foundATM and targetPrompt and atmModel then
-            -- Tem caixa disponível! Vai roubar (mesmo se já tiver mala)
             local targetCFrame = nil
             pcall(function()
                 if atmModel:FindFirstChild("Position", true) and atmModel:FindFirstChild("Position", true):IsA("BasePart") then
@@ -953,7 +949,9 @@ task.spawn(function()
 
             if targetCFrame then 
                 StatusRob.Text = "Status: Moving to target..."
-                local safePos = targetCFrame.Position + (targetCFrame.LookVector * 4) 
+                
+                -- MUDANÇA 1: Ficar em cima do caixa (Subindo 4.5 studs no eixo Y)
+                local safePos = targetCFrame.Position + Vector3.new(0, 4.5, 0) 
                 moveToTarget(safePos)
 
                 if not _G.AutoRob then break end
@@ -979,7 +977,7 @@ task.spawn(function()
 
                     while tick() - robStartTime < 15 do 
                         if not _G.AutoRob then break end
-                        if not targetPrompt.Enabled then break end -- Se o prompt desativou, o roubo acabou (caixa esvaziado)
+                        if not targetPrompt.Enabled then break end 
 
                         if fireproximityprompt then fireproximityprompt(targetPrompt, 1) end
                         task.wait(0.1)
@@ -997,7 +995,6 @@ task.spawn(function()
             end
 
         elseif hasBag then
-            -- Não tem mais nenhum caixa disponível, MAS você tem malas! Hora de entregar.
             StatusRob.Text = "Status: Looking for drop-off point..."
             local dropOffPoint = nil
             for _, obj in pairs(workspace:GetDescendants()) do
@@ -1008,8 +1005,17 @@ task.spawn(function()
             end
 
             if dropOffPoint then
-                StatusRob.Text = "Status: Dropping off money at base..."
-                moveToTarget(dropOffPoint.Position + Vector3.new(0, 3, 0))
+                -- MUDANÇA 2: Aproximação em duas etapas (Vem de fora, entra no meio)
+                StatusRob.Text = "Status: Approaching base from outside..."
+                local outsidePos = dropOffPoint.Position + Vector3.new(30, 15, 30)
+                moveToTarget(outsidePos)
+                
+                if not _G.AutoRob then continue end
+
+                StatusRob.Text = "Status: Entering drop-off zone..."
+                local middlePos = dropOffPoint.Position + Vector3.new(0, 3, 0)
+                moveToTarget(middlePos)
+                
                 if not _G.AutoRob then continue end
 
                 if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
@@ -1024,7 +1030,6 @@ task.spawn(function()
             end
 
         else
-            -- Não tem caixas para roubar E não tem malas. Apenas aguarda o respawn.
             noclipActive = false
             if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then lp.Character.HumanoidRootPart.Anchored = false end
             StatusRob.Text = "Status: Waiting for ATMs to spawn..."
